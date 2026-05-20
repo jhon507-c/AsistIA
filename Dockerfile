@@ -1,8 +1,10 @@
 FROM python:3.10-slim
 
-# System dependencies required by OpenCV and InsightFace
-# libgl1-mesa-glx was renamed to libgl1 in Debian trixie
+# Build tools (needed to compile insightface/Cython) + runtime libs for OpenCV
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    python3-dev \
     libgl1 \
     libglib2.0-0 \
     libsm6 \
@@ -14,7 +16,8 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    && apt-get purge -y --auto-remove gcc g++ python3-dev
 
 # Copy application files
 COPY server.py .
