@@ -34,6 +34,7 @@ print('Model ready')"
 RUN mkdir -p /app/static
 RUN cp kiosk.html /app/static/kiosk.html
 COPY assets/ /app/static/
+COPY static/flash.mp3 /app/static/flash.mp3
 
 # Data directory (mount as volume for persistence)
 RUN mkdir -p /app/data
