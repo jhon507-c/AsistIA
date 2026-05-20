@@ -624,11 +624,15 @@ canvas.chart { width:100% !important; }
     <div class="charts-grid">
       <div class="chart-card">
         <div class="chart-title">Asistencia diaria</div>
-        <canvas id="chartBar" height="150"></canvas>
+        <div style="position:relative;height:170px">
+          <canvas id="chartBar"></canvas>
+        </div>
       </div>
       <div class="chart-card" style="display:flex;flex-direction:column;align-items:center">
         <div class="chart-title" style="align-self:flex-start">Distribución hoy</div>
-        <canvas id="chartPie" height="150" style="max-width:150px"></canvas>
+        <div style="position:relative;height:160px;width:160px">
+          <canvas id="chartPie"></canvas>
+        </div>
         <div id="pieLabels" style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center;line-height:1.8"></div>
       </div>
     </div>
@@ -636,7 +640,9 @@ canvas.chart { width:100% !important; }
     <!-- Fila 2: Asistencia por nivel -->
     <div class="chart-card">
       <div class="chart-title">Asistencia por nivel — hoy</div>
-      <canvas id="chartNivel" height="110"></canvas>
+      <div style="position:relative;height:130px">
+        <canvas id="chartNivel"></canvas>
+      </div>
     </div>
 
     <!-- Fila 3: Top tardíos + Cobertura bio + Alumnos por nivel -->
