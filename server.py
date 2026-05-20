@@ -907,10 +907,22 @@ async def dashboard_stats(days: int = 7, _: dict = Depends(require_auth)):
         GROUP BY student_id ORDER BY late_count DESC LIMIT 5
     """, (late_30,)).fetchall()
 
-    # Distribución por nivel
+    # Distribución por nivel (total alumnos)
     by_nivel = conn.execute("""
         SELECT nivel, COUNT(*) as cnt FROM students WHERE nivel != '' GROUP BY nivel ORDER BY cnt DESC
     """).fetchall()
+
+    # Asistencia hoy por nivel
+    nivel_att = conn.execute("""
+        SELECT s.nivel,
+            SUM(CASE WHEN a.status='present' THEN 1 ELSE 0 END) as present,
+            SUM(CASE WHEN a.status='late'    THEN 1 ELSE 0 END) as late,
+            COUNT(s.id) as total
+        FROM students s
+        LEFT JOIN attendance a ON a.student_id = s.id AND a.date = ?
+        WHERE s.nivel != ''
+        GROUP BY s.nivel ORDER BY s.nivel
+    """, (today_str,)).fetchall()
 
     conn.close()
     return {
@@ -922,6 +934,7 @@ async def dashboard_stats(days: int = 7, _: dict = Depends(require_auth)):
         "bio_students":   bio_students,
         "top_late":       [dict(r) for r in top_late],
         "by_nivel":       [dict(r) for r in by_nivel],
+        "nivel_att":      [dict(r) for r in nivel_att],
     }
 
 
