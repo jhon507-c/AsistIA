@@ -233,7 +233,8 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .btn-red:hover { background:rgba(244,63,94,.22); }
 
 /* Tab nav */
-.adm-tabs { display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto; }
+.adm-tabs { display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto;
+  position:sticky;top:0;z-index:20;background:var(--bg);padding-top:4px; }
 .adm-tab { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:9px 16px;
   border-radius:10px 10px 0 0;border:none;background:transparent;color:var(--muted);
   cursor:pointer;transition:.2s;white-space:nowrap;letter-spacing:.3px; }
