@@ -7,6 +7,10 @@ asistia.db
 # Modelos InsightFace — binarios grandes, se descargan en instalación
 models/
 
+# Secrets — NUNCA subir a Git
+.env
+*.env
+
 # Python
 __pycache__/
 *.py[cod]

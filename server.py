@@ -49,9 +49,15 @@ RECOGNITION_THRESHOLD = float(os.environ.get("RECOGNITION_THRESHOLD", "0.45"))
 LATE_HOUR   = int(os.environ.get("LATE_HOUR",   "7"))
 LATE_MINUTE = int(os.environ.get("LATE_MINUTE", "15"))
 
-ADMIN_EMAIL    = os.environ.get("ADMIN_EMAIL",    "ADMIN_EMAIL_REDACTED")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "REDACTED")
+ADMIN_EMAIL    = os.environ.get("ADMIN_EMAIL")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 SESSION_HOURS  = int(os.environ.get("SESSION_HOURS", "8"))
+
+if not ADMIN_EMAIL or not ADMIN_PASSWORD:
+    raise RuntimeError(
+        "Variables de entorno requeridas: ADMIN_EMAIL y ADMIN_PASSWORD. "
+        "Agrégalas antes de arrancar el servidor."
+    )
 
 face_app = None                      # InsightFace app (se carga al iniciar)
 student_cache: dict = {}             # Cache de embeddings: {id: [embedding, ...]}
