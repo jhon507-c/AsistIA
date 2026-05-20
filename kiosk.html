@@ -528,9 +528,19 @@ canvas.chart { width:100% !important; }
     </div>
     <div class="field-wrap">
       <label class="field-lbl">Contraseña</label>
-      <input class="field-inp" id="loginPass" type="password" placeholder="••••••••"
-        onkeydown="if(event.key==='Enter')doLogin()">
+      <div style="position:relative">
+        <input class="field-inp" id="loginPass" type="password" placeholder="••••••••"
+          style="padding-right:44px" onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" onclick="togglePassVis()" id="btnPassVis"
+          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+          background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);padding:4px"
+          title="Mostrar/ocultar contraseña">👁</button>
+      </div>
     </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:4px;cursor:pointer">
+      <input type="checkbox" id="chkRemember" style="accent-color:var(--accent);width:15px;height:15px">
+      Recordar correo
+    </label>
     <div class="login-err" id="loginErr"></div>
     <button class="btn-login" id="btnLogin" onclick="doLogin()">Iniciar sesión</button>
     <div class="login-inst">Acceso restringido — solo personal autorizado</div>
@@ -963,6 +973,11 @@ async function doLogin() {
     });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.detail || 'Credenciales incorrectas'; return; }
+    // Recordar email si el checkbox está marcado
+    if (document.getElementById('chkRemember').checked)
+      localStorage.setItem('asistia_remember_email', email);
+    else
+      localStorage.removeItem('asistia_remember_email');
     saveAuth(data.token, { name: data.name, email: data.email, role: data.role });
     updateUserChip();
     document.getElementById('sLogin').classList.add('off');
@@ -989,11 +1004,24 @@ async function doLogout() {
   showLogin();
 }
 
+function togglePassVis() {
+  const inp = document.getElementById('loginPass');
+  const btn = document.getElementById('btnPassVis');
+  if (inp.type === 'password') { inp.type = 'text';  btn.textContent = '🙈'; }
+  else                          { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
 function showLogin() {
   document.getElementById('sLogin').classList.remove('off');
   ['sKiosk','sDash','sAdmin'].forEach(s => document.getElementById(s).classList.add('off'));
   document.getElementById('loginPass').value = '';
   document.getElementById('loginErr').textContent = '';
+  // Restaurar email recordado
+  const saved = localStorage.getItem('asistia_remember_email');
+  if (saved) {
+    document.getElementById('loginEmail').value = saved;
+    document.getElementById('chkRemember').checked = true;
+  }
 }
 
 function updateUserChip() {
@@ -1997,7 +2025,9 @@ async function init() {
       await initApp();
       return;
     }
-    clearAuth();
+    // Solo borrar token si el servidor respondió 401 (token inválido/expirado)
+    // Si fue error de red (res===null), mantener sesión y mostrar login
+    if (res !== null) clearAuth();
   }
 
   // Mostrar login
