@@ -125,6 +125,8 @@ if Path("static").exists():
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
     return conn
 
 
@@ -976,24 +978,33 @@ async def get_stats(fecha: Optional[str] = None, _: dict = Depends(require_auth)
 
 
 @app.get("/api/attendance/export")
-async def export_csv(fecha: Optional[str] = None, _: dict = Depends(require_auth)):
-    today = fecha or date.today().isoformat()
+async def export_csv(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+    _: dict = Depends(require_auth)
+):
+    today = date.today().isoformat()
+    d_desde = desde or today
+    d_hasta = hasta or today
+
     conn = get_db()
     rows = conn.execute(
-        "SELECT student_name, grade, time, status, confidence FROM attendance WHERE date = ? ORDER BY time",
-        (today,)
+        "SELECT date, student_name, grade, time, status, confidence FROM attendance "
+        "WHERE date BETWEEN ? AND ? ORDER BY date, time",
+        (d_desde, d_hasta)
     ).fetchall()
     conn.close()
 
-    lines = ["Nombre,Grado,Hora,Estado,Confianza"]
+    lines = ["Fecha,Nombre,Grado,Hora,Estado,Confianza"]
     for r in rows:
-        lines.append(f"{r['student_name']},{r['grade']},{r['time']},{r['status']},{r['confidence']}%")
+        lines.append(f"{r['date']},{r['student_name']},{r['grade']},{r['time']},{r['status']},{r['confidence']}%")
 
     from fastapi.responses import Response
+    filename = f"asistencia_{d_desde}" if d_desde == d_hasta else f"asistencia_{d_desde}_al_{d_hasta}"
     return Response(
         content="\n".join(lines),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=asistencia_{today}.csv"}
+        headers={"Content-Disposition": f"attachment; filename={filename}.csv"}
     )
 
 

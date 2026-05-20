@@ -28,9 +28,9 @@
   --glowD:    0 0 24px rgba(244,63,94,.35);
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
-  font-family: 'DM Sans', sans-serif; user-select: none;
-  -webkit-transform: translateZ(0); transform: translateZ(0); }
+  font-family: 'DM Sans', sans-serif; user-select: none; }
 
 /* grid bg */
 body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
@@ -51,22 +51,22 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
   align-items:center;justify-content:center; }
 .login-logo img { width:88px;height:88px;object-fit:contain;
   filter:drop-shadow(0 0 16px rgba(34,197,94,.45)); }
-.login-title { font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-bottom:4px; }
-.login-sub { font-size:12px;color:var(--muted);margin-bottom:28px; }
+.login-title { font-family:'Syne',sans-serif;font-weight:800;font-size:24px;margin-bottom:4px; }
+.login-sub { font-size:14px;color:var(--muted);margin-bottom:28px; }
 .field-wrap { text-align:left;margin-bottom:14px; }
-.field-lbl { font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;
+.field-lbl { font-size:14px;font-weight:600;color:var(--muted);letter-spacing:.5px;
   text-transform:uppercase;margin-bottom:5px;display:block; }
 .field-inp { width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);
   font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:10px;
   outline:none;transition:.2s; }
 .field-inp:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,197,94,.12); }
-.login-err { font-size:12px;color:var(--danger);min-height:16px;margin-bottom:12px;text-align:left; }
+.login-err { font-size:14px;color:var(--danger);min-height:16px;margin-bottom:12px;text-align:left; }
 .btn-login { width:100%;padding:13px;background:var(--accent);color:#07110d;
   font-family:'Syne',sans-serif;font-weight:700;font-size:15px;border:none;
   border-radius:11px;cursor:pointer;transition:.2s;margin-top:4px; }
 .btn-login:hover { background:var(--accent2); }
 .btn-login:disabled { opacity:.5;cursor:not-allowed; }
-.login-inst { font-size:11px;color:var(--muted);margin-top:20px; }
+.login-inst { font-size:14px;color:var(--muted);margin-top:20px; }
 
 /* ══ USER MANAGEMENT ════════════════════════════════════════ */
 .user-row { display:flex;align-items:center;gap:10px;padding:10px 14px;
@@ -74,19 +74,19 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .user-row:last-child { border-bottom:none; }
 .user-avatar { width:34px;height:34px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#07110d; }
+  font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#07110d; }
 .ua-admin { background:linear-gradient(135deg,var(--accent),var(--accent2)); }
 .ua-op    { background:linear-gradient(135deg,var(--info),#0ea5e9); }
 .user-info { flex:1;min-width:0; }
-.user-nm { font-size:13px;font-weight:500; }
-.user-em { font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.role-badge { font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;letter-spacing:.5px; }
+.user-nm { font-size:14px;font-weight:500; }
+.user-em { font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.role-badge { font-size:14px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;letter-spacing:.5px; }
 .rb-admin { background:rgba(34,197,94,.15);color:var(--accent);border:1px solid rgba(34,197,94,.3); }
 .rb-op    { background:rgba(56,189,248,.12);color:var(--info);border:1px solid rgba(56,189,248,.25); }
 .rb-off   { background:rgba(244,63,94,.1);color:var(--danger);border:1px solid rgba(244,63,94,.2); }
 .user-actions { display:flex;gap:6px; }
 .uact { background:transparent;border:1px solid var(--border);color:var(--muted);
-  font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;transition:.15s; }
+  font-size:14px;padding:4px 8px;border-radius:6px;cursor:pointer;transition:.15s; }
 .uact:hover { border-color:var(--accent);color:var(--accent); }
 .uact.danger:hover { border-color:var(--danger);color:var(--danger); }
 
@@ -110,14 +110,14 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .topbar-center { flex:1; text-align:center; }
 .clock { font-family:'Syne',sans-serif;font-weight:700;font-size:20px;
   color:var(--accent);letter-spacing:2px; }
-.clock-date { font-size:11px;color:var(--muted);margin-top:1px; }
-.ws-badge { font-size:10px;padding:4px 10px;border-radius:20px;font-weight:600;
+.clock-date { font-size:14px;color:var(--muted);margin-top:1px; }
+.ws-badge { font-size:14px;padding:4px 10px;border-radius:20px;font-weight:600;
   border:1px solid; transition:.3s; }
 .ws-ok   { color:var(--accent);border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.08); }
 .ws-warn { color:var(--warn);border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.08); }
 .ws-err  { color:var(--danger);border-color:rgba(244,63,94,.3);background:rgba(244,63,94,.08); }
 .btn-sm { background:transparent;border:1px solid var(--border);color:var(--muted);
-  font-family:'DM Sans',sans-serif;font-size:11px;padding:6px 12px;border-radius:8px;
+  font-family:'DM Sans',sans-serif;font-size:14px;padding:6px 12px;border-radius:8px;
   cursor:pointer;transition:.2s; }
 .btn-sm:hover { border-color:var(--accent);color:var(--accent); }
 
@@ -128,10 +128,8 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .cam-col { position:relative;background:#030d07;overflow:hidden;display:flex;align-items:center;justify-content:center;
   isolation:isolate; /* contiene el compositing del video */
   transform:translateZ(0); }
-#vKiosk { width:100%;height:100%;object-fit:cover;transform:scaleX(-1);
-  will-change:transform;backface-visibility:hidden; }
-#cvKiosk { position:absolute;inset:0;transform:scaleX(-1);pointer-events:none;
-  will-change:transform; }
+#vKiosk { width:100%;height:100%;object-fit:cover;transform:scaleX(-1); }
+#cvKiosk { position:absolute;inset:0;transform:scaleX(-1);pointer-events:none; }
 
 /* face target ring */
 .face-ring { position:absolute;width:220px;height:260px;
@@ -153,7 +151,7 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 
 .scan-lbl { position:absolute;left:50%;transform:translateX(-50%);
   bottom:calc(50% - 160px);white-space:nowrap;
-  font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:3px;
   color:var(--accent);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22);
   padding:5px 16px;border-radius:20px;z-index:5; }
 
@@ -174,14 +172,14 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
   margin:0 auto 14px;border:3px solid var(--accent);box-shadow:var(--glow); }
 .rav.late { background:linear-gradient(135deg,var(--warn),#f97316);border-color:var(--warn);box-shadow:0 0 24px rgba(251,191,36,.35); }
 .rav.err  { background:linear-gradient(135deg,var(--danger),#be185d);border-color:var(--danger);box-shadow:var(--glowD); }
-.rname { font-family:'Syne',sans-serif;font-weight:800;font-size:26px;margin-bottom:4px; }
-.rgrade { font-size:13px;color:var(--muted);margin-bottom:14px; }
+.rname { font-family:'Syne',sans-serif;font-weight:800;font-size:30px;margin-bottom:4px; }
+.rgrade { font-size:14px;color:var(--muted);margin-bottom:14px; }
 .rbadge { display:inline-flex;align-items:center;gap:6px;
-  padding:7px 20px;border-radius:30px;font-weight:600;font-size:13px; }
+  padding:7px 20px;border-radius:30px;font-weight:600;font-size:14px; }
 .rb-ok   { background:rgba(34,197,94,.15);color:var(--accent);border:1px solid rgba(34,197,94,.3); }
 .rb-late { background:rgba(251,191,36,.15);color:var(--warn);border:1px solid rgba(251,191,36,.3); }
 .rb-dup  { background:rgba(244,63,94,.1);color:var(--danger);border:1px solid rgba(244,63,94,.2); }
-.rconf { font-size:11px;color:var(--muted);margin-top:8px; }
+.rconf { font-size:14px;color:var(--muted);margin-top:8px; }
 @keyframes cardPop { from{opacity:0;transform:scale(.82) translateY(12px)} to{opacity:1;transform:none} }
 @keyframes ravPulse { 0%,100%{box-shadow:var(--glow)} 50%{box-shadow:0 0 44px rgba(34,197,94,.75),0 0 80px rgba(34,197,94,.25)} }
 .result-card-big:not(.card-late):not(.card-err) .rav { animation: ravPulse 1.4s ease-in-out 2; }
@@ -190,7 +188,7 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .side { background:var(--surface);border-left:1px solid var(--border);
   display:flex;flex-direction:column;overflow:hidden; }
 .panel-hdr { padding:14px 16px;border-bottom:1px solid var(--border);
-  font-family:'Syne',sans-serif;font-size:10px;font-weight:700;
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:700;
   letter-spacing:3px;color:var(--muted);text-transform:uppercase; }
 .log-feed { flex:1;overflow-y:auto;padding:4px 0; }
 .log-feed::-webkit-scrollbar { width:3px; }
@@ -203,14 +201,14 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .d-late { background:var(--warn); }
 .d-dup  { background:var(--muted); }
 .log-info { flex:1;min-width:0; }
-.log-nm { font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.log-sub { font-size:10px;color:var(--muted); }
-.log-t { font-size:10px;color:var(--muted);font-family:'Syne',sans-serif;flex-shrink:0; }
+.log-nm { font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.log-sub { font-size:14px;color:var(--muted); }
+.log-t { font-size:14px;color:var(--muted);font-family:'Syne',sans-serif;flex-shrink:0; }
 .statsbar { display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--border);flex-shrink:0; }
 .stat { padding:10px 6px;text-align:center;border-right:1px solid var(--border); }
 .stat:last-child { border-right:none; }
-.stat-v { font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:var(--accent); }
-.stat-l { font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase; }
+.stat-v { font-family:'Syne',sans-serif;font-weight:700;font-size:24px;color:var(--accent); }
+.stat-l { font-size:14px;color:var(--muted);letter-spacing:1px;text-transform:uppercase; }
 
 /* ══════════════════════════════════════════
    REGISTER SCREEN
@@ -221,9 +219,9 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .adm-scroll { flex:1;overflow-y:auto;padding:0 32px 28px; }
 /* ══ ADMIN TABS ══════════════════════════════════════════════════ */
 .adm-hdr { display:flex;align-items:center;gap:16px;width:100%;margin-bottom:4px; }
-.adm-title { font-family:'Syne',sans-serif;font-weight:800;font-size:22px;flex:1; }
+.adm-title { font-family:'Syne',sans-serif;font-weight:800;font-size:24px;flex:1; }
 .adm-title span { color:var(--accent); }
-.btn { font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
+.btn { font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;
   padding:10px 20px;border-radius:10px;border:none;cursor:pointer;
   transition:.2s;display:inline-flex;align-items:center;gap:7px; }
 .btn-primary { background:linear-gradient(135deg,var(--accent),var(--accent2));color:#07110d;box-shadow:var(--glow); }
@@ -236,14 +234,14 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 
 /* Tab nav */
 .adm-tabs { display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:0;overflow-x:auto; }
-.adm-tab { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:9px 16px;
+.adm-tab { font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;padding:9px 16px;
   border-radius:10px 10px 0 0;border:none;background:transparent;color:var(--muted);
   cursor:pointer;transition:.2s;white-space:nowrap;letter-spacing:.3px; }
 .adm-tab:hover { color:var(--text); }
 .adm-tab.active { background:var(--surface);color:var(--accent);
   border:1px solid var(--border);border-bottom:1px solid var(--surface);margin-bottom:-1px; }
 .adm-tab-badge { display:inline-block;background:rgba(34,197,94,.15);color:var(--accent);
-  font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:5px; }
+  font-size:14px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:5px; }
 
 /* Tab panels */
 .adm-panel { display:none;width:100%; }
@@ -257,10 +255,10 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 
 /* Register card */
 .card { background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px; }
-.card-t { font-family:'Syne',sans-serif;font-weight:700;font-size:13px;
+.card-t { font-family:'Syne',sans-serif;font-weight:700;font-size:14px;
   margin-bottom:16px;display:flex;align-items:center;gap:8px; }
 .field { margin-bottom:12px; }
-.field label { display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:.5px; }
+.field label { display:block;font-size:14px;color:var(--muted);margin-bottom:5px;letter-spacing:.5px; }
 .field input, .field select {
   width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;
   color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;
@@ -272,8 +270,7 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .reg-cam-wrap { position:relative;width:100%;border-radius:10px;overflow:hidden;
   background:#030d07;border:1px solid var(--border);aspect-ratio:4/3;margin-bottom:12px;
   isolation:isolate;transform:translateZ(0); }
-#vReg { width:100%;height:100%;object-fit:cover;transform:scaleX(-1);
-  will-change:transform;backface-visibility:hidden; }
+#vReg { width:100%;height:100%;object-fit:cover;transform:scaleX(-1); }
 #cvReg { position:absolute;inset:0;transform:scaleX(-1);pointer-events:none; }
 
 /* cam idle placeholder */
@@ -282,10 +279,10 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
   background:var(--s2);transition:opacity .3s; }
 .cam-idle.hidden { opacity:0;pointer-events:none; }
 .cam-idle-icon { font-size:40px;opacity:.5; }
-.cam-idle-txt { font-family:'Syne',sans-serif;font-size:12px;color:var(--muted);letter-spacing:1px; }
+.cam-idle-txt { font-family:'Syne',sans-serif;font-size:14px;color:var(--muted);letter-spacing:1px; }
 
 /* scan toggle button */
-.btn-scan { font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;
+.btn-scan { font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;
   padding:10px 20px;border-radius:10px;border:none;cursor:pointer;transition:.2s;
   display:inline-flex;align-items:center;gap:8px;width:100%;justify-content:center;
   margin-bottom:10px; }
@@ -313,11 +310,11 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
   color:var(--accent);background:rgba(34,197,94,.1);border-radius:8px;
   width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
 .phase-desc { flex:1; }
-.phase-title { font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--text); }
-.phase-hint  { font-size:11px;color:var(--muted);margin-top:2px; }
+.phase-title { font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--text); }
+.phase-hint  { font-size:14px;color:var(--muted);margin-top:2px; }
 
 /* table loading state */
-.tbl-loading { text-align:center;color:var(--muted);padding:20px;font-size:12px; }
+.tbl-loading { text-align:center;color:var(--muted);padding:20px;font-size:14px; }
 .tbl-loading::after { content:''; display:inline-block;width:12px;height:12px;
   border:2px solid var(--border);border-top-color:var(--accent);
   border-radius:50%;animation:spin .7s linear infinite;margin-left:8px;vertical-align:middle; }
@@ -356,7 +353,7 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 
 .phase-msg { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   background:rgba(7,17,13,.80);backdrop-filter:blur(6px);
-  font-family:'Syne',sans-serif;font-weight:700;font-size:13px;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:14px;
   color:var(--accent);padding:8px 18px;border-radius:20px;
   border:1px solid rgba(34,197,94,.25);white-space:nowrap;
   opacity:0;transition:.3s;z-index:4;text-align:center; }
@@ -372,24 +369,24 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .prev-slot { width:64px;height:64px;border-radius:8px;
   background:var(--s2);border:2px dashed var(--border);
   display:flex;align-items:center;justify-content:center;
-  font-size:11px;color:var(--muted);overflow:hidden;transition:.3s;flex-shrink:0; }
+  font-size:14px;color:var(--muted);overflow:hidden;transition:.3s;flex-shrink:0; }
 .prev-slot.filled { border-style:solid;border-color:var(--accent);box-shadow:var(--glow); }
 .prev-slot img { width:100%;height:100%;object-fit:cover; }
 .prev-slot .slot-n { font-family:'Syne',sans-serif;font-weight:700;font-size:18px; }
 
 /* Student table */
 .tbl-wrap { overflow-x:auto; }
-table { width:100%;border-collapse:collapse;font-size:12px; }
-th { text-align:left;font-size:9px;letter-spacing:2px;text-transform:uppercase;
+table { width:100%;border-collapse:collapse;font-size:14px; }
+th { text-align:left;font-size:14px;letter-spacing:2px;text-transform:uppercase;
   color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border); }
 td { padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle; }
 tr:last-child td { border-bottom:none; }
 .ava-sm { width:30px;height:30px;border-radius:50%;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   display:inline-flex;align-items:center;justify-content:center;
-  font-family:'Syne',sans-serif;font-weight:700;font-size:10px;color:#07110d;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#07110d;
   margin-right:7px;vertical-align:middle;flex-shrink:0; }
-.pill { display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600; }
+.pill { display:inline-block;padding:3px 9px;border-radius:20px;font-size:14px;font-weight:600; }
 .pill-ok { background:rgba(34,197,94,.12);color:var(--accent); }
 .pill-no { background:rgba(75,122,94,.15);color:var(--muted); }
 .pill-late { background:rgba(251,191,36,.12);color:var(--warn); }
@@ -397,7 +394,7 @@ tr:last-child td { border-bottom:none; }
 /* toast */
 #toast { position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);
   background:var(--surface);border:1px solid var(--accent);color:var(--text);
-  padding:10px 22px;border-radius:50px;font-size:12px;font-weight:500;
+  padding:10px 22px;border-radius:50px;font-size:14px;font-weight:500;
   box-shadow:var(--glow);transition:.3s;z-index:999;white-space:nowrap; }
 #toast.show { transform:translateX(-50%) translateY(0); }
 
@@ -408,28 +405,28 @@ tr:last-child td { border-bottom:none; }
 #loading.gone { opacity:0;pointer-events:none; }
 .ld-logo { display:flex;flex-direction:column;align-items:center;gap:10px; }
 .ld-logo img { width:96px;height:96px;object-fit:contain;filter:drop-shadow(0 0 18px rgba(34,197,94,.4)); }
-.ld-logo span { font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--accent);letter-spacing:1px; }
+.ld-logo span { font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--accent);letter-spacing:1px; }
 .ld-bar { width:180px;height:3px;background:var(--s2);border-radius:3px;overflow:hidden; }
 .ld-fill { height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));
   border-radius:3px;width:0;transition:width .4s; }
-.ld-msg { font-size:12px;color:var(--muted); }
+.ld-msg { font-size:14px;color:var(--muted); }
 
 /* ══ DASHBOARD ══════════════════════════════════════════ */
 #sDash { background:var(--bg);overflow-y:auto;padding:24px 28px;gap:18px;
   flex-direction:column;justify-content:flex-start; }
 .dash-hdr { display:flex;align-items:center;gap:14px;width:100%; }
-.dash-title { font-family:'Syne',sans-serif;font-weight:800;font-size:22px;flex:1; }
+.dash-title { font-family:'Syne',sans-serif;font-weight:800;font-size:24px;flex:1; }
 .dash-title span { color:var(--accent); }
 
 /* KPI strip */
 .kpi-row { display:grid;grid-template-columns:repeat(4,1fr);gap:12px;width:100%; }
 .kpi { background:var(--surface);border:1px solid var(--border);border-radius:14px;
   padding:16px 18px;display:flex;flex-direction:column;gap:4px; }
-.kpi-val { font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:var(--accent); }
+.kpi-val { font-family:'Syne',sans-serif;font-weight:800;font-size:30px;color:var(--accent); }
 .kpi-val.warn { color:var(--warn); }
 .kpi-val.danger { color:var(--danger); }
 .kpi-val.muted { color:var(--muted); }
-.kpi-lbl { font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase; }
+.kpi-lbl { font-size:14px;color:var(--muted);letter-spacing:1px;text-transform:uppercase; }
 
 /* Dashboard scroll container */
 #sDash { overflow-y:auto; }
@@ -439,7 +436,7 @@ tr:last-child td { border-bottom:none; }
 .charts-grid { display:grid;grid-template-columns:1fr 220px;gap:14px;width:100%; }
 .charts-grid3 { display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;width:100%; }
 .chart-card { background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px; }
-.chart-title { font-family:'Syne',sans-serif;font-weight:700;font-size:10px;
+.chart-title { font-family:'Syne',sans-serif;font-weight:700;font-size:14px;
   color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px; }
 canvas.chart { width:100% !important; }
 
@@ -447,10 +444,10 @@ canvas.chart { width:100% !important; }
 .rank-row { display:flex;align-items:center;gap:10px;padding:7px 0;
   border-bottom:1px solid rgba(255,255,255,.03); }
 .rank-row:last-child { border-bottom:none; }
-.rank-pos { font-family:'Syne',sans-serif;font-weight:700;font-size:13px;
+.rank-pos { font-family:'Syne',sans-serif;font-weight:700;font-size:14px;
   color:var(--muted);width:20px;text-align:center;flex-shrink:0; }
-.rank-name { flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.rank-badge { font-family:'Syne',sans-serif;font-size:11px;font-weight:700;
+.rank-name { flex:1;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.rank-badge { font-family:'Syne',sans-serif;font-size:14px;font-weight:700;
   color:var(--warn);background:rgba(251,191,36,.1);border-radius:20px;padding:2px 8px; }
 
 /* Bio progress bar */
@@ -462,12 +459,12 @@ canvas.chart { width:100% !important; }
   text-align:center;cursor:pointer;transition:.2s;margin-bottom:12px; }
 .import-zone:hover,.import-zone.drag { border-color:var(--accent);background:rgba(34,197,94,.04); }
 .import-zone-icon { font-size:32px;margin-bottom:8px; }
-.import-zone-txt { font-size:12px;color:var(--muted); }
+.import-zone-txt { font-size:14px;color:var(--muted); }
 .import-zone-txt span { color:var(--accent);font-weight:600; }
 
 .import-preview { background:var(--s2);border-radius:10px;overflow:hidden;margin-bottom:12px; }
-.import-preview table { font-size:11px; }
-.import-stat { display:flex;gap:16px;font-size:12px;color:var(--muted);margin-bottom:12px; }
+.import-preview table { font-size:14px; }
+.import-stat { display:flex;gap:16px;font-size:14px;color:var(--muted);margin-bottom:12px; }
 .import-stat b { color:var(--accent); }
 
 /* Search students */
@@ -485,9 +482,9 @@ canvas.chart { width:100% !important; }
 .search-item:hover { background:var(--s3); }
 .search-item:last-child { border-bottom:none; }
 .si-info { flex:1;min-width:0; }
-.si-name { font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.si-meta { font-size:10px;color:var(--muted); }
-.si-badge { font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;flex-shrink:0; }
+.si-name { font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.si-meta { font-size:14px;color:var(--muted); }
+.si-badge { font-size:14px;padding:2px 8px;border-radius:20px;font-weight:600;flex-shrink:0; }
 .si-ok   { background:rgba(34,197,94,.12);color:var(--accent); }
 .si-pend { background:rgba(251,191,36,.1);color:var(--warn); }
 
@@ -501,6 +498,34 @@ canvas.chart { width:100% !important; }
   .charts-grid,.charts-grid3 { grid-template-columns:1fr; }
   #sDash { padding:14px; }
 }
+@media(min-width:769px){
+  /* en desktop quitar backdrop-filter — muy costoso sin GPU dedicada */
+  .result-overlay, .phase-msg, #userMenuOverlay { backdrop-filter:none !important; }
+  /* sidebar más amplio en pantallas grandes */
+  .kiosk-body { grid-template-columns:1fr 360px; }
+}
+@media(min-width:1280px){
+  .kiosk-body { grid-template-columns:1fr 400px; }
+}
+/* ── Export modal ── */
+#exportModal { display:none;position:fixed;inset:0;z-index:300;align-items:center;justify-content:center;
+  background:rgba(7,17,13,.75); }
+#exportModal.open { display:flex; }
+.export-card { background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:24px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:16px; }
+.export-card h3 { font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text); }
+.export-fields { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+.export-fields label { font-size:14px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;
+  display:flex;flex-direction:column;gap:4px; }
+.export-fields input[type=date] { background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);padding:7px 10px;font-size:14px;outline:none;width:100%;
+  color-scheme:dark; }
+.export-fields input[type=date]:focus { border-color:var(--accent); }
+.export-actions { display:flex;gap:8px;flex-direction:column; }
+.export-quick { display:flex;gap:6px;flex-wrap:wrap; }
+.export-quick button { font-size:14px;padding:4px 10px;border-radius:6px;
+  background:var(--s3);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:.15s; }
+.export-quick button:hover { border-color:var(--accent);color:var(--accent); }
 </style>
 </head>
 <body>
@@ -538,7 +563,7 @@ canvas.chart { width:100% !important; }
           title="Mostrar/ocultar contraseña">👁</button>
       </div>
     </div>
-    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:4px;cursor:pointer">
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);margin-top:4px;cursor:pointer">
       <input type="checkbox" id="chkRemember" onchange="onRememberToggle()"
         style="accent-color:var(--accent);width:15px;height:15px">
       Recordar correo
@@ -546,7 +571,7 @@ canvas.chart { width:100% !important; }
     <div class="login-err" id="loginErr"></div>
     <button class="btn-login" id="btnLogin" onclick="doLogin()">Iniciar sesión</button>
     <div class="login-inst">Acceso restringido — solo personal autorizado</div>
-    <div style="text-align:center;font-size:9px;color:var(--muted);margin-top:8px;opacity:.5">v2026.05.20-r3</div>
+    <div style="text-align:center;font-size:14px;color:var(--muted);margin-top:8px;opacity:.5">v2026.05.20-r3</div>
   </div>
 </div>
 
@@ -604,7 +629,7 @@ canvas.chart { width:100% !important; }
 <div class="screen off" id="sDash">
   <div class="dash-hdr">
     <div class="dash-title">Panel de <span>Estadísticas</span></div>
-    <select id="dashDays" onchange="loadDashboard()" class="btn btn-ghost" style="font-size:12px;padding:7px 12px">
+    <select id="dashDays" onchange="loadDashboard()" class="btn btn-ghost" style="font-size:14px;padding:7px 12px">
       <option value="7">Últimos 7 días</option>
       <option value="14">Últimos 14 días</option>
       <option value="30">Últimos 30 días</option>
@@ -646,7 +671,7 @@ canvas.chart { width:100% !important; }
         <div style="position:relative;height:160px;width:160px">
           <canvas id="chartPie"></canvas>
         </div>
-        <div id="pieLabels" style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center;line-height:1.8"></div>
+        <div id="pieLabels" style="margin-top:8px;font-size:14px;color:var(--muted);text-align:center;line-height:1.8"></div>
       </div>
     </div>
 
@@ -682,7 +707,7 @@ canvas.chart { width:100% !important; }
   <div class="adm-fixed">
     <div class="adm-hdr">
       <div class="adm-title">Panel de <span>Administración</span></div>
-      <button class="btn btn-ghost" style="font-size:12px" onclick="goKiosk()">← Kiosko</button>
+      <button class="btn btn-ghost" style="font-size:14px" onclick="goKiosk()">← Kiosko</button>
     </div>
     <!-- Tab nav -->
     <div class="adm-tabs">
@@ -761,7 +786,7 @@ canvas.chart { width:100% !important; }
           <div class="prev-slot" id="ps1"><div class="slot-n">2</div></div>
           <div class="prev-slot" id="ps2"><div class="slot-n">3</div></div>
           <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;">
-            <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;min-height:36px" onclick="resetCapture()">↺ Reiniciar</button>
+            <button class="btn btn-ghost" style="font-size:14px;padding:6px 14px;min-height:36px" onclick="resetCapture()">↺ Reiniciar</button>
           </div>
         </div>
         <button class="btn btn-primary" style="width:100%" id="btnRegister" onclick="registerStudent()" disabled>
@@ -774,7 +799,7 @@ canvas.chart { width:100% !important; }
         <div class="card">
           <div class="card-t" style="justify-content:space-between">
             <span>📂 Importar alumnos (CSV)</span>
-            <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="downloadCsvTemplate()">⬇ Plantilla</button>
+            <button class="btn btn-ghost" style="font-size:14px;padding:5px 10px" onclick="downloadCsvTemplate()">⬇ Plantilla</button>
           </div>
           <div class="import-zone" id="importZone" onclick="document.getElementById('csvFile').click()"
             ondragover="event.preventDefault();this.classList.add('drag')"
@@ -818,8 +843,8 @@ canvas.chart { width:100% !important; }
       <div class="card-t" style="justify-content:space-between">
         <span>👥 Alumnos registrados</span>
         <div style="display:flex;gap:8px;align-items:center">
-          <span style="font-size:11px;color:var(--muted)" id="studentCount">0</span>
-          <button class="btn btn-primary" style="font-size:11px;padding:6px 14px"
+          <span style="font-size:14px;color:var(--muted)" id="studentCount">0</span>
+          <button class="btn btn-primary" style="font-size:14px;padding:6px 14px"
             onclick="switchTab('register')">+ Registrar</button>
         </div>
       </div>
@@ -847,7 +872,7 @@ canvas.chart { width:100% !important; }
       <div class="card-t" style="justify-content:space-between">
         <span>📋 Asistencia de hoy</span>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="exportCSV()">⬇ Exportar CSV</button>
+          <button class="btn btn-ghost" style="font-size:14px;padding:6px 12px" onclick="openExportModal()">⬇ Exportar CSV</button>
         </div>
       </div>
       <!-- Resumen rápido -->
@@ -868,7 +893,7 @@ canvas.chart { width:100% !important; }
     <div class="card" id="cardUsers">
       <div class="card-t" style="justify-content:space-between">
         <span>⚙ Operadores del sistema</span>
-        <button class="btn btn-primary" style="font-size:11px;padding:6px 14px"
+        <button class="btn btn-primary" style="font-size:14px;padding:6px 14px"
           onclick="toggleNewUserForm()">+ Nuevo operador</button>
       </div>
       <div id="newUserForm" style="display:none" class="new-user-form">
@@ -894,8 +919,8 @@ canvas.chart { width:100% !important; }
           </div>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-primary" style="flex:1;font-size:12px;padding:8px" onclick="createUser()">Crear operador</button>
-          <button class="btn btn-ghost" style="font-size:12px;padding:8px" onclick="toggleNewUserForm()">Cancelar</button>
+          <button class="btn btn-primary" style="flex:1;font-size:14px;padding:8px" onclick="createUser()">Crear operador</button>
+          <button class="btn btn-ghost" style="font-size:14px;padding:8px" onclick="toggleNewUserForm()">Cancelar</button>
         </div>
       </div>
       <div id="userList" style="margin-top:8px"></div>
@@ -912,12 +937,12 @@ canvas.chart { width:100% !important; }
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;
     width:260px;padding:20px;box-shadow:var(--glow)">
     <div id="umName" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px"></div>
-    <div id="umEmail" style="font-size:11px;color:var(--muted);margin-bottom:16px"></div>
+    <div id="umEmail" style="font-size:14px;color:var(--muted);margin-bottom:16px"></div>
     <div id="umAdminLink" style="display:none;margin-bottom:10px">
-      <button class="btn btn-ghost" style="width:100%;font-size:12px;padding:8px" onclick="closeUserMenu();goAdmin()">⚙ Panel Admin</button>
+      <button class="btn btn-ghost" style="width:100%;font-size:14px;padding:8px" onclick="closeUserMenu();goAdmin()">⚙ Panel Admin</button>
     </div>
     <button class="btn" style="width:100%;background:rgba(244,63,94,.12);color:var(--danger);
-      border:1px solid rgba(244,63,94,.25);font-size:13px;padding:9px" onclick="doLogout()">
+      border:1px solid rgba(244,63,94,.25);font-size:14px;padding:9px" onclick="doLogout()">
       Cerrar sesión
     </button>
   </div>
@@ -1086,7 +1111,28 @@ function _beep(freqs, dur, type='sine', vol=0.18) {
     });
   } catch(e) {}
 }
-function playMatch()   { _beep([[523,0,.08],[659,.09,.08],[784,.18,.18]], .4, 'sine', .2); }
+function playMatch() {
+  try {
+    const ctx = _ac();
+    const t = ctx.currentTime;
+    // nota 1: Do6 — ataque instantáneo, decay 90ms
+    const o1 = ctx.createOscillator(), g1 = ctx.createGain();
+    o1.type = 'sine'; o1.frequency.value = 1046.5;
+    g1.gain.setValueAtTime(0, t);
+    g1.gain.linearRampToValueAtTime(0.22, t + 0.005);
+    g1.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    o1.connect(g1); g1.connect(ctx.destination);
+    o1.start(t); o1.stop(t + 0.1);
+    // nota 2: Mi6 — arranca 55ms después, más suave
+    const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+    o2.type = 'sine'; o2.frequency.value = 1318.5;
+    g2.gain.setValueAtTime(0, t + 0.055);
+    g2.gain.linearRampToValueAtTime(0.14, t + 0.060);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    o2.connect(g2); g2.connect(ctx.destination);
+    o2.start(t + 0.055); o2.stop(t + 0.2);
+  } catch(e) {}
+}
 function playLate()    { _beep([[392,0,.12],[370,.14,.18]], .35, 'triangle', .18); }
 function playDup()     { _beep([[280,0,.15]], .2, 'sawtooth', .10); }
 function playCapture() { _beep([[880,0,.04],[1046,.05,.06]], .12, 'sine', .12); }
@@ -1562,9 +1608,9 @@ async function loadStudents() {
     const present = att.filter(a=>a.status==='present').length;
     const late    = att.filter(a=>a.status==='late').length;
     document.getElementById('attSummary').innerHTML = `
-      <span style="background:rgba(34,197,94,.12);color:var(--accent);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">✓ ${present} Presentes</span>
-      <span style="background:rgba(251,191,36,.1);color:var(--warn);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">⏱ ${late} Tardíos</span>
-      <span style="background:rgba(244,63,94,.1);color:var(--danger);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">✗ ${students.length - present - late} Ausentes</span>`;
+      <span style="background:rgba(34,197,94,.12);color:var(--accent);padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600">✓ ${present} Presentes</span>
+      <span style="background:rgba(251,191,36,.1);color:var(--warn);padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600">⏱ ${late} Tardíos</span>
+      <span style="background:rgba(244,63,94,.1);color:var(--danger);padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600">✗ ${students.length - present - late} Ausentes</span>`;
 
     // Attendance table
     const atbody = document.getElementById('tAttendance');
@@ -1594,12 +1640,12 @@ function renderStudentsTable(students, markedToday) {
     const marked = markedToday ? markedToday.has(s.id) : false;
     return `<tr>
       <td><span class="ava-sm">${ini}</span>${s.name}</td>
-      <td style="color:var(--muted);font-size:11px">${s.cedula||'—'}</td>
+      <td style="color:var(--muted);font-size:14px">${s.cedula||'—'}</td>
       <td style="color:var(--muted)">${s.nivel||'—'}</td>
       <td style="color:var(--muted)">${s.grade}</td>
       <td style="color:var(--accent)">${s.photo_count}📸</td>
       <td><span class="pill ${marked?'pill-ok':'pill-no'}">${marked?'✓':'—'}</span></td>
-      <td><button class="btn btn-red" style="padding:0;width:36px;height:36px;font-size:13px;border-radius:8px" onclick="deleteStudent('${s.id}')">✕</button></td>
+      <td><button class="btn btn-red" style="padding:0;width:36px;height:36px;font-size:14px;border-radius:8px" onclick="deleteStudent('${s.id}')">✕</button></td>
     </tr>`;
   }).join('');
 }
@@ -1623,9 +1669,6 @@ async function deleteStudent(id) {
   loadStudents();
 }
 
-function exportCSV() {
-  window.open(`${API}/api/attendance/export`);
-}
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 const SCREENS = ['sKiosk','sDash','sAdmin'];
@@ -1756,18 +1799,18 @@ async function loadDashboard() {
           <div class="rank-name">${r.student_name}</div>
           <div class="rank-badge">${r.late_count} tarde${r.late_count>1?'s':''}</div>
         </div>`).join('')
-    : '<div style="color:var(--muted);font-size:12px;padding:12px 0">Sin datos de tardanzas</div>';
+    : '<div style="color:var(--muted);font-size:14px;padding:12px 0">Sin datos de tardanzas</div>';
 
   // Bio progress
   const bioPct = data.total_students > 0
     ? Math.round((data.bio_students / data.total_students) * 100) : 0;
   document.getElementById('bioProgress').innerHTML = `
-    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+    <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px">
       <span style="color:var(--muted)">Con biometría</span>
       <span style="color:var(--accent);font-family:'Syne',sans-serif;font-weight:700">${bioPct}%</span>
     </div>
     <div class="bio-bar-wrap"><div class="bio-bar" style="width:${bioPct}%"></div></div>
-    <div style="font-size:10px;color:var(--muted)">${data.bio_students} de ${data.total_students} alumnos</div>`;
+    <div style="font-size:14px;color:var(--muted)">${data.bio_students} de ${data.total_students} alumnos</div>`;
 
   // Asistencia por nivel — gráfica horizontal stacked
   const nCtx = document.getElementById('chartNivel').getContext('2d');
@@ -1799,18 +1842,18 @@ async function loadDashboard() {
     });
   } else {
     nCtx.canvas.closest('.chart-card').querySelector('.chart-title').insertAdjacentHTML(
-      'afterend','<div style="color:var(--muted);font-size:12px;padding:8px 0">Sin alumnos con nivel asignado</div>');
+      'afterend','<div style="color:var(--muted);font-size:14px;padding:8px 0">Sin alumnos con nivel asignado</div>');
   }
 
   // Alumnos por nivel (lista)
   document.getElementById('nivelList').innerHTML = data.by_nivel.length
     ? data.by_nivel.map(r=>`
         <div style="display:flex;justify-content:space-between;padding:5px 0;
-          border-bottom:1px solid rgba(255,255,255,.03);font-size:12px">
+          border-bottom:1px solid rgba(255,255,255,.03);font-size:14px">
           <span>${r.nivel || 'Sin nivel'}</span>
           <span style="color:var(--accent);font-family:'Syne',sans-serif;font-weight:700">${r.cnt}</span>
         </div>`).join('')
-    : '<div style="color:var(--muted);font-size:12px;padding:8px 0">Sin datos</div>';
+    : '<div style="color:var(--muted);font-size:14px;padding:8px 0">Sin datos</div>';
 }
 
 // ── CSV Import ─────────────────────────────────────────────────────────────────
@@ -1915,7 +1958,7 @@ function searchStudents(q) {
     const _sr = await apiFetch(`/api/students?q=${encodeURIComponent(q)}`);
     if (!_sr) return;
     const rows = await _sr.json();
-    if (!rows.length) { box.innerHTML='<div style="padding:14px;color:var(--muted);font-size:12px">Sin resultados</div>'; }
+    if (!rows.length) { box.innerHTML='<div style="padding:14px;color:var(--muted);font-size:14px">Sin resultados</div>'; }
     else {
       box.innerHTML = rows.map(s=>`
         <div class="search-item" onclick="selectForBiometric('${s.id}','${s.name.replace(/'/g,"\\'")}')">
@@ -1975,7 +2018,7 @@ async function loadUsers() {
   if (!res || !res.ok) return;
   const users = await res.json();
   const list = document.getElementById('userList');
-  if (!users.length) { list.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:12px">Sin usuarios</div>'; return; }
+  if (!users.length) { list.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:14px">Sin usuarios</div>'; return; }
   list.innerHTML = users.map(u => {
     const initials = u.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
     const avatarCls = u.role === 'admin' ? 'ua-admin' : 'ua-op';
@@ -1988,7 +2031,7 @@ async function loadUsers() {
     return `<div class="user-row">
       <div class="user-avatar ${avatarCls}">${initials}</div>
       <div class="user-info">
-        <div class="user-nm">${u.name}${isSelf ? ' <span style="font-size:10px;color:var(--muted)">(tú)</span>' : ''}</div>
+        <div class="user-nm">${u.name}${isSelf ? ' <span style="font-size:14px;color:var(--muted)">(tú)</span>' : ''}</div>
         <div class="user-em">${u.email}</div>
       </div>
       ${roleBadge}
@@ -2059,6 +2102,51 @@ async function init() {
 }
 
 init();
+
+// ── Export modal ──────────────────────────────────────────────────────────────
+function openExportModal() {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('expDesde').value = today;
+  document.getElementById('expHasta').value = today;
+  document.getElementById('exportModal').classList.add('open');
+}
+function closeExportModal() {
+  document.getElementById('exportModal').classList.remove('open');
+}
+function setExportRange(days) {
+  const hasta = new Date();
+  const desde = new Date();
+  desde.setDate(hasta.getDate() - days + 1);
+  document.getElementById('expDesde').value = desde.toISOString().slice(0,10);
+  document.getElementById('expHasta').value = hasta.toISOString().slice(0,10);
+}
+function doExport() {
+  const desde = document.getElementById('expDesde').value;
+  const hasta = document.getElementById('expHasta').value;
+  if (!desde || !hasta) return;
+  window.open(`${API}/api/attendance/export?desde=${desde}&hasta=${hasta}`);
+  closeExportModal();
+}
 </script>
+
+<!-- ── Export Modal ─────────────────────────────────────────── -->
+<div id="exportModal" onclick="if(event.target===this)closeExportModal()">
+  <div class="export-card">
+    <h3>Exportar Asistencia</h3>
+    <div class="export-quick">
+      <button onclick="setExportRange(0)">Hoy</button>
+      <button onclick="setExportRange(7)">Últimos 7 días</button>
+      <button onclick="setExportRange(30)">Últimos 30 días</button>
+    </div>
+    <div class="export-fields">
+      <label>Desde <input type="date" id="expDesde"></label>
+      <label>Hasta <input type="date" id="expHasta"></label>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" style="font-size:14px" onclick="closeExportModal()">Cancelar</button>
+      <button class="btn btn-primary" style="font-size:14px" onclick="doExport()">⬇ Descargar CSV</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
