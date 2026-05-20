@@ -1114,23 +1114,41 @@ function _beep(freqs, dur, type='sine', vol=0.18) {
 function playMatch() {
   try {
     const ctx = _ac();
-    const t = ctx.currentTime;
-    // nota 1: Do6 — ataque instantáneo, decay 90ms
-    const o1 = ctx.createOscillator(), g1 = ctx.createGain();
-    o1.type = 'sine'; o1.frequency.value = 1046.5;
-    g1.gain.setValueAtTime(0, t);
-    g1.gain.linearRampToValueAtTime(0.22, t + 0.005);
-    g1.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
-    o1.connect(g1); g1.connect(ctx.destination);
-    o1.start(t); o1.stop(t + 0.1);
-    // nota 2: Mi6 — arranca 55ms después, más suave
-    const o2 = ctx.createOscillator(), g2 = ctx.createGain();
-    o2.type = 'sine'; o2.frequency.value = 1318.5;
-    g2.gain.setValueAtTime(0, t + 0.055);
-    g2.gain.linearRampToValueAtTime(0.14, t + 0.060);
-    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-    o2.connect(g2); g2.connect(ctx.destination);
-    o2.start(t + 0.055); o2.stop(t + 0.2);
+    const sr = ctx.sampleRate;
+    // dos notas: Do6 (1046 Hz) + Mi6 (1318 Hz), desfasadas 60ms
+    // cada nota: sine + 2do armónico suave para cuerpo, envelope tipo iMessage
+    function makeNote(freq, startSec, durSec, peak) {
+      const off   = Math.round(startSec * sr);
+      const len   = Math.round(durSec   * sr);
+      const atk   = Math.round(0.004    * sr); // 4ms attack
+      const buf   = ctx.createBuffer(1, off + len, sr);
+      const d     = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) {
+        // sine fundamental + armónico suave
+        const s = Math.sin(2 * Math.PI * freq * i / sr)
+                + 0.18 * Math.sin(2 * Math.PI * freq * 2 * i / sr);
+        // envelope: linear attack, exponential decay
+        const env = i < atk
+          ? (i / atk)
+          : Math.exp(-6.5 * (i - atk) / (len - atk));
+        d[off + i] = s * env * peak;
+      }
+      return buf;
+    }
+    const dur1 = 0.13, dur2 = 0.14;
+    const b1 = makeNote(1046.5, 0,     dur1, 0.28);
+    const b2 = makeNote(1318.5, 0.062, dur2, 0.20);
+    // mezclar en un solo buffer
+    const total = Math.round((0.062 + dur2) * sr);
+    const mix   = ctx.createBuffer(1, total, sr);
+    const m     = mix.getChannelData(0);
+    const d1    = b1.getChannelData(0);
+    const d2    = b2.getChannelData(0);
+    for (let i = 0; i < total; i++) m[i] = (d1[i] || 0) + (d2[i] || 0);
+    const src = ctx.createBufferSource();
+    src.buffer = mix;
+    src.connect(ctx.destination);
+    src.start();
   } catch(e) {}
 }
 function playLate()    { _beep([[392,0,.12],[370,.14,.18]], .35, 'triangle', .18); }
