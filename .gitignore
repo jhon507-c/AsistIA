@@ -24,7 +24,7 @@ build/
 logs/
 *.log
 
-# Static — se genera desde kiosk.html al instalar
+# Static — se genera al instalar (los assets fuente están en assets/)
 static/
 
 # OS

@@ -26,9 +26,10 @@ app = insightface.app.FaceAnalysis(name='buffalo_sc', root='/app/models', provid
 app.prepare(ctx_id=0, det_size=(320,320)); \
 print('Model ready')"
 
-# Create static dir and copy frontend
+# Create static dir and copy frontend + logo assets
 RUN mkdir -p /app/static
 RUN cp kiosk.html /app/static/kiosk.html
+COPY assets/ /app/static/
 
 # Data directory (mount as volume for persistence)
 RUN mkdir -p /app/data

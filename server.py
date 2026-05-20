@@ -165,15 +165,20 @@ def init_db():
         except Exception:
             pass
 
-    # Crear admin por defecto si no existe
+    # Crear o actualizar admin por defecto
     existing = conn.execute("SELECT id FROM app_users WHERE email=?", (ADMIN_EMAIL,)).fetchone()
     if not existing:
         conn.execute(
             "INSERT INTO app_users (email, name, role, password_hash, active, created_at) VALUES (?,?,?,?,1,?)",
             (ADMIN_EMAIL, "Administrador", "admin", _hash_password(ADMIN_PASSWORD), datetime.now().isoformat())
         )
-        conn.commit()
         log.info(f"Admin creado: {ADMIN_EMAIL}")
+    else:
+        # Actualizar contraseña si cambió (re-hash en cada arranque)
+        conn.execute("UPDATE app_users SET password_hash=? WHERE email=?",
+                     (_hash_password(ADMIN_PASSWORD), ADMIN_EMAIL))
+        log.info(f"Admin password actualizado: {ADMIN_EMAIL}")
+    conn.commit()
 
     conn.close()
 

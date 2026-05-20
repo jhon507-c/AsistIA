@@ -50,6 +50,10 @@ info "Configurando directorio /opt/asistia..."
 mkdir -p /opt/asistia/{static,models,logs}
 cp server.py  /opt/asistia/
 cp kiosk.html /opt/asistia/static/
+# Copiar assets del logo
+if [ -d assets ]; then
+    cp assets/* /opt/asistia/static/
+fi
 chown -R asistia:asistia /opt/asistia
 ok "Archivos copiados"
 
