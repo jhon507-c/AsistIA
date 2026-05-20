@@ -30,6 +30,7 @@ logs/
 
 # Static — se genera al instalar (los assets fuente están en assets/)
 static/
+!static/flash.mp3
 
 # OS
 .DS_Store
