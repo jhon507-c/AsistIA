@@ -1098,6 +1098,8 @@ function _ac() {
   if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return _audioCtx;
 }
+const _matchAudio = new Audio('/static/flash.mp3');
+_matchAudio.preload = 'auto';
 function _beep(freqs, dur, type='sine', vol=0.18) {
   try {
     const ctx = _ac();
@@ -1113,6 +1115,9 @@ function _beep(freqs, dur, type='sine', vol=0.18) {
 }
 function playMatch() {
   try {
+    _matchAudio.currentTime = 0;
+    _matchAudio.play().catch(() => {});
+    return;
     const ctx = _ac();
     const sr = ctx.sampleRate;
     // dos notas: Do6 (1046 Hz) + Mi6 (1318 Hz), desfasadas 60ms
