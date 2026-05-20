@@ -1029,6 +1029,11 @@ function togglePassVis() {
 }
 
 function showLogin() {
+  // Defensive: stop EVERYTHING before showing login
+  try { stopKioskCam(); } catch(e) {}
+  try { stopRegCam();   } catch(e) {}
+  if (kioskWs) { try { kioskWs.close(); } catch(e) {} kioskWs = null; }
+  if (regWs)   { try { regWs.close();   } catch(e) {} regWs   = null; }
   document.getElementById('sLogin').classList.remove('off');
   ['sKiosk','sDash','sAdmin'].forEach(s => document.getElementById(s).classList.add('off'));
   document.getElementById('loginPass').value = '';
