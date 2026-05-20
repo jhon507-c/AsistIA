@@ -524,6 +524,7 @@ canvas.chart { width:100% !important; }
     <div class="field-wrap">
       <label class="field-lbl">Correo electrónico</label>
       <input class="field-inp" id="loginEmail" type="email" placeholder="usuario@ipadavid.edu.pa"
+        oninput="onLoginEmailChange()"
         onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
     </div>
     <div class="field-wrap">
@@ -538,12 +539,14 @@ canvas.chart { width:100% !important; }
       </div>
     </div>
     <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:4px;cursor:pointer">
-      <input type="checkbox" id="chkRemember" style="accent-color:var(--accent);width:15px;height:15px">
+      <input type="checkbox" id="chkRemember" onchange="onRememberToggle()"
+        style="accent-color:var(--accent);width:15px;height:15px">
       Recordar correo
     </label>
     <div class="login-err" id="loginErr"></div>
     <button class="btn-login" id="btnLogin" onclick="doLogin()">Iniciar sesión</button>
     <div class="login-inst">Acceso restringido — solo personal autorizado</div>
+    <div style="text-align:center;font-size:9px;color:var(--muted);margin-top:8px;opacity:.5">v2026.05.20-r2</div>
   </div>
 </div>
 
@@ -1002,6 +1005,20 @@ async function doLogout() {
   stopRegCam();
   if (kioskWs) { kioskWs.close(); kioskWs = null; }
   showLogin();
+}
+
+function onRememberToggle() {
+  const checked = document.getElementById('chkRemember').checked;
+  const email = document.getElementById('loginEmail').value.trim();
+  if (checked && email) localStorage.setItem('asistia_remember_email', email);
+  else if (!checked)    localStorage.removeItem('asistia_remember_email');
+}
+
+function onLoginEmailChange() {
+  if (document.getElementById('chkRemember').checked) {
+    const email = document.getElementById('loginEmail').value.trim();
+    if (email) localStorage.setItem('asistia_remember_email', email);
+  }
 }
 
 function togglePassVis() {
