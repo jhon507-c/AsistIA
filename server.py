@@ -942,10 +942,12 @@ async def dashboard_stats(days: int = 7, _: dict = Depends(require_auth)):
 async def get_attendance(fecha: Optional[str] = None, _: dict = Depends(require_auth)):
     today = fecha or date.today().isoformat()
     conn = get_db()
-    rows = conn.execute(
-        "SELECT * FROM attendance WHERE date = ? ORDER BY time",
-        (today,)
-    ).fetchall()
+    rows = conn.execute("""
+        SELECT a.*, s.nivel, s.cedula
+        FROM attendance a
+        LEFT JOIN students s ON s.id = a.student_id
+        WHERE a.date = ? ORDER BY a.time
+    """, (today,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 

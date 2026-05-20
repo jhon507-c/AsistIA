@@ -217,8 +217,9 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 ══════════════════════════════════════════ */
 #sAdmin { background:var(--bg);overflow-y:auto;padding:28px 32px;gap:20px;
   flex-direction:column;justify-content:flex-start; }
-.adm-hdr { display:flex;align-items:center;gap:16px;width:100%; }
-.adm-title { font-family:'Syne',sans-serif;font-weight:800;font-size:26px;flex:1; }
+/* ══ ADMIN TABS ══════════════════════════════════════════════════ */
+.adm-hdr { display:flex;align-items:center;gap:16px;width:100%;margin-bottom:4px; }
+.adm-title { font-family:'Syne',sans-serif;font-weight:800;font-size:22px;flex:1; }
 .adm-title span { color:var(--accent); }
 .btn { font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
   padding:10px 20px;border-radius:10px;border:none;cursor:pointer;
@@ -231,7 +232,26 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .btn-red { background:rgba(244,63,94,.12);color:var(--danger);border:1px solid rgba(244,63,94,.2);min-width:44px;min-height:44px; }
 .btn-red:hover { background:rgba(244,63,94,.22); }
 
-.adm-grid { display:grid;grid-template-columns:420px 1fr;gap:20px;width:100%; }
+/* Tab nav */
+.adm-tabs { display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto; }
+.adm-tab { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:9px 16px;
+  border-radius:10px 10px 0 0;border:none;background:transparent;color:var(--muted);
+  cursor:pointer;transition:.2s;white-space:nowrap;letter-spacing:.3px; }
+.adm-tab:hover { color:var(--text); }
+.adm-tab.active { background:var(--surface);color:var(--accent);
+  border:1px solid var(--border);border-bottom:1px solid var(--surface);margin-bottom:-1px; }
+.adm-tab-badge { display:inline-block;background:rgba(34,197,94,.15);color:var(--accent);
+  font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:5px; }
+
+/* Tab panels */
+.adm-panel { display:none;width:100%; }
+.adm-panel.active { display:block; }
+
+/* Register tab — 2-col only for register */
+.reg-layout { display:grid;grid-template-columns:380px 1fr;gap:20px; }
+
+/* Table full height */
+.tbl-full { max-height:calc(100vh - 280px);overflow-y:auto; }
 
 /* Register card */
 .card { background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px; }
@@ -472,7 +492,7 @@ canvas.chart { width:100% !important; }
 @media(max-width:768px){
   .kiosk-body { grid-template-columns:1fr; }
   .side { display:none; }
-  .adm-grid { grid-template-columns:1fr; }
+  .reg-layout { grid-template-columns:1fr; }
   #sAdmin { padding:16px; }
   .kpi-row { grid-template-columns:1fr 1fr; }
   .charts-grid,.charts-grid3 { grid-template-columns:1fr; }
@@ -638,194 +658,220 @@ canvas.chart { width:100% !important; }
 <div class="screen off" id="sAdmin">
   <div class="adm-hdr">
     <div class="adm-title">Panel de <span>Administración</span></div>
-    <button class="btn btn-ghost" onclick="goKiosk()">← Kiosko</button>
+    <button class="btn btn-ghost" style="font-size:12px" onclick="goKiosk()">← Kiosko</button>
   </div>
 
-  <div class="adm-grid">
-    <!-- Register -->
-    <div class="card">
-      <div class="card-t">📸 Registrar Alumno</div>
+  <!-- Tab nav -->
+  <div class="adm-tabs">
+    <button class="adm-tab" id="tab-register"    onclick="switchTab('register')">📸 Registrar</button>
+    <button class="adm-tab active" id="tab-students" onclick="switchTab('students')">
+      👥 Alumnos <span class="adm-tab-badge" id="tabBadgeStudents">0</span>
+    </button>
+    <button class="adm-tab" id="tab-attendance"  onclick="switchTab('attendance')">
+      📋 Asistencia <span class="adm-tab-badge" id="tabBadgeAtt">0</span>
+    </button>
+    <button class="adm-tab" id="tab-users" style="display:none" onclick="switchTab('users')">⚙ Operadores</button>
+  </div>
 
-      <div class="field">
-        <label>Nombre completo</label>
-        <input id="rName2" type="text" placeholder="Ej: María González" autocomplete="off">
-      </div>
-      <div class="field">
-        <label>Grado / Sección</label>
-        <select id="rGrade2">
-          <option>7° A</option><option>7° B</option>
-          <option>8° A</option><option>8° B</option>
-          <option>9° A</option><option>9° B</option>
-          <option>10° A</option><option>10° B</option>
-          <option>11° A</option><option>11° B</option>
-          <option>12° A</option><option>12° B</option>
-          <option>Docente</option><option>Personal</option>
-        </select>
-      </div>
-
-      <!-- Botón iniciar cámara -->
-      <button class="btn-scan idle" id="btnScan" onclick="toggleScan()">
-        <span id="btnScanIcon">▶</span>
-        <span id="btnScanTxt">Iniciar cámara</span>
-      </button>
-
-      <!-- Instrucción de fase actual -->
-      <div class="phase-banner" id="phaseBanner">
-        <div class="phase-num" id="phaseNum">1</div>
-        <div class="phase-desc">
-          <div class="phase-title" id="phaseTitle">Foto de frente</div>
-          <div class="phase-hint"  id="phaseHint">Mira directo a la cámara</div>
+  <!-- ── TAB: Registrar ── -->
+  <div class="adm-panel" id="panel-register">
+    <div class="reg-layout">
+      <!-- Cámara -->
+      <div class="card">
+        <div class="card-t">📸 Registrar Alumno</div>
+        <div class="field">
+          <label>Nombre completo</label>
+          <input id="rName2" type="text" placeholder="Ej: María González" autocomplete="off">
         </div>
-      </div>
-
-      <div class="reg-cam-wrap">
-        <video id="vReg" autoplay muted playsinline></video>
-        <canvas id="cvReg"></canvas>
-
-        <div class="cam-idle" id="camIdle">
-          <div class="cam-idle-icon">📷</div>
-          <div class="cam-idle-txt">CÁMARA INACTIVA</div>
+        <div class="field">
+          <label>Grado / Sección</label>
+          <select id="rGrade2">
+            <option>7° A</option><option>7° B</option>
+            <option>8° A</option><option>8° B</option>
+            <option>9° A</option><option>9° B</option>
+            <option>10° A</option><option>10° B</option>
+            <option>11° A</option><option>11° B</option>
+            <option>12° A</option><option>12° B</option>
+            <option>Docente</option><option>Personal</option>
+          </select>
         </div>
-
-        <div class="quality-bar-wrap">
-          <div class="quality-bar" id="qualBar" style="width:0%;background:var(--danger)"></div>
-        </div>
-        <div class="phase-msg" id="phaseMsg"></div>
-        <div class="cap-flash" id="capFlash"></div>
-
-        <div class="phase-overlay">
-          <div class="phase-bar">
-            <div class="phase-dot active" id="pd0"></div>
-            <div class="phase-dot" id="pd1"></div>
-            <div class="phase-dot" id="pd2"></div>
+        <button class="btn-scan idle" id="btnScan" onclick="toggleScan()">
+          <span id="btnScanIcon">▶</span>
+          <span id="btnScanTxt">Iniciar cámara</span>
+        </button>
+        <div class="phase-banner" id="phaseBanner">
+          <div class="phase-num" id="phaseNum">1</div>
+          <div class="phase-desc">
+            <div class="phase-title" id="phaseTitle">Foto de frente</div>
+            <div class="phase-hint"  id="phaseHint">Mira directo a la cámara</div>
           </div>
         </div>
+        <div class="reg-cam-wrap">
+          <video id="vReg" autoplay muted playsinline></video>
+          <canvas id="cvReg"></canvas>
+          <div class="cam-idle" id="camIdle">
+            <div class="cam-idle-icon">📷</div>
+            <div class="cam-idle-txt">CÁMARA INACTIVA</div>
+          </div>
+          <div class="quality-bar-wrap">
+            <div class="quality-bar" id="qualBar" style="width:0%;background:var(--danger)"></div>
+          </div>
+          <div class="phase-msg" id="phaseMsg"></div>
+          <div class="cap-flash" id="capFlash"></div>
+          <div class="phase-overlay">
+            <div class="phase-bar">
+              <div class="phase-dot active" id="pd0"></div>
+              <div class="phase-dot" id="pd1"></div>
+              <div class="phase-dot" id="pd2"></div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-capture" id="btnCapture" onclick="manualCapture()">
+          📸 Capturar foto <span id="captureLbl">1 de 3</span>
+        </button>
+        <div class="preview-strip">
+          <div class="prev-slot" id="ps0"><div class="slot-n">1</div></div>
+          <div class="prev-slot" id="ps1"><div class="slot-n">2</div></div>
+          <div class="prev-slot" id="ps2"><div class="slot-n">3</div></div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;">
+            <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;min-height:36px" onclick="resetCapture()">↺ Reiniciar</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%" id="btnRegister" onclick="registerStudent()" disabled>
+          Registrar Alumno
+        </button>
       </div>
 
-      <!-- Botón captura manual -->
-      <button class="btn-capture" id="btnCapture" onclick="manualCapture()">
-        📸 Capturar foto <span id="captureLbl">1 de 3</span>
-      </button>
+      <!-- CSV + Buscar biometría -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card">
+          <div class="card-t" style="justify-content:space-between">
+            <span>📂 Importar alumnos (CSV)</span>
+            <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="downloadCsvTemplate()">⬇ Plantilla</button>
+          </div>
+          <div class="import-zone" id="importZone" onclick="document.getElementById('csvFile').click()"
+            ondragover="event.preventDefault();this.classList.add('drag')"
+            ondragleave="this.classList.remove('drag')"
+            ondrop="handleCsvDrop(event)">
+            <div class="import-zone-icon">📄</div>
+            <div class="import-zone-txt">Arrastra tu CSV aquí o <span>selecciona archivo</span><br>
+              Columnas: <b>nombre, cedula, nivel</b></div>
+            <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleCsvFile(event)">
+          </div>
+          <div id="importPreview" style="display:none">
+            <div class="import-stat" id="importStat"></div>
+            <div class="import-preview">
+              <table style="width:100%"><thead><tr>
+                <th>Nombre</th><th>Cédula</th><th>Nivel</th>
+              </tr></thead><tbody id="importTbody"></tbody></table>
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="confirmImport()">
+              ✓ Confirmar importación
+            </button>
+          </div>
+        </div>
 
-      <!-- Preview thumbnails -->
-      <div class="preview-strip">
-        <div class="prev-slot" id="ps0"><div class="slot-n">1</div></div>
-        <div class="prev-slot" id="ps1"><div class="slot-n">2</div></div>
-        <div class="prev-slot" id="ps2"><div class="slot-n">3</div></div>
-        <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;">
-          <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;min-height:36px" onclick="resetCapture()">↺ Reiniciar</button>
+        <div class="card">
+          <div class="card-t">🔍 Completar biometría</div>
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" id="searchInput" type="text"
+              placeholder="Buscar por nombre o cédula..."
+              oninput="searchStudents(this.value)">
+          </div>
+          <div class="search-results" id="searchResults" style="display:none"></div>
         </div>
       </div>
-
-      <button class="btn btn-primary" style="width:100%" id="btnRegister" onclick="registerStudent()" disabled>
-        Registrar Alumno
-      </button>
     </div>
+  </div>
 
-    <!-- Right col: CSV import + search + students + attendance -->
-    <div style="display:flex;flex-direction:column;gap:20px;">
-      <!-- CSV Import -->
-      <div class="card">
-        <div class="card-t" style="display:flex;align-items:center;justify-content:space-between">
-          <span>📂 Importar alumnos (CSV)</span>
-          <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="downloadCsvTemplate()">⬇ Plantilla</button>
+  <!-- ── TAB: Alumnos ── -->
+  <div class="adm-panel active" id="panel-students">
+    <div class="card" style="overflow:hidden">
+      <div class="card-t" style="justify-content:space-between">
+        <span>👥 Alumnos registrados</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;color:var(--muted)" id="studentCount">0</span>
+          <button class="btn btn-primary" style="font-size:11px;padding:6px 14px"
+            onclick="switchTab('register')">+ Registrar</button>
         </div>
-        <div class="import-zone" id="importZone" onclick="document.getElementById('csvFile').click()"
-          ondragover="event.preventDefault();this.classList.add('drag')"
-          ondragleave="this.classList.remove('drag')"
-          ondrop="handleCsvDrop(event)">
-          <div class="import-zone-icon">📄</div>
-          <div class="import-zone-txt">Arrastra tu CSV aquí o <span>selecciona archivo</span><br>
-            Columnas: <b>nombre, cedula, nivel</b> (con encabezado)</div>
-          <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleCsvFile(event)">
+      </div>
+      <!-- Buscador inline -->
+      <div class="search-wrap" style="margin-bottom:12px">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="studentsFilter" type="text"
+          placeholder="Filtrar por nombre, cédula o nivel..."
+          oninput="filterStudentsTable(this.value)">
+      </div>
+      <div class="tbl-full tbl-wrap">
+        <table><thead><tr>
+          <th>Nombre</th><th>Cédula</th><th>Nivel</th><th>Grado</th><th>Fotos</th><th>Hoy</th><th></th>
+        </tr></thead>
+        <tbody id="tStudents">
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Sin alumnos</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: Asistencia ── -->
+  <div class="adm-panel" id="panel-attendance">
+    <div class="card" style="overflow:hidden">
+      <div class="card-t" style="justify-content:space-between">
+        <span>📋 Asistencia de hoy</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="exportCSV()">⬇ Exportar CSV</button>
         </div>
-        <div id="importPreview" style="display:none">
-          <div class="import-stat" id="importStat"></div>
-          <div class="import-preview">
-            <table style="width:100%"><thead><tr>
-              <th>Nombre</th><th>Cédula</th><th>Nivel</th>
-            </tr></thead><tbody id="importTbody"></tbody></table>
+      </div>
+      <!-- Resumen rápido -->
+      <div id="attSummary" style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap"></div>
+      <div class="tbl-full tbl-wrap">
+        <table><thead><tr>
+          <th>Nombre</th><th>Nivel</th><th>Grado</th><th>Hora</th><th>Estado</th><th>Conf.</th>
+        </tr></thead>
+        <tbody id="tAttendance">
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Sin registros</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: Operadores ── -->
+  <div class="adm-panel" id="panel-users">
+    <div class="card" id="cardUsers">
+      <div class="card-t" style="justify-content:space-between">
+        <span>⚙ Operadores del sistema</span>
+        <button class="btn btn-primary" style="font-size:11px;padding:6px 14px"
+          onclick="toggleNewUserForm()">+ Nuevo operador</button>
+      </div>
+      <div id="newUserForm" style="display:none" class="new-user-form">
+        <div class="form-grid">
+          <div>
+            <label class="field-lbl">Nombre</label>
+            <input class="field-inp" id="nuName" type="text" placeholder="Nombre completo">
           </div>
-          <button class="btn btn-primary" style="width:100%" onclick="confirmImport()">
-            ✓ Confirmar importación
-          </button>
-        </div>
-      </div>
-
-      <!-- Buscar alumno para completar biometría -->
-      <div class="card">
-        <div class="card-t">🔍 Completar biometría</div>
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input class="search-input" id="searchInput" type="text"
-            placeholder="Buscar por nombre o cédula..."
-            oninput="searchStudents(this.value)">
-        </div>
-        <div class="search-results" id="searchResults" style="display:none"></div>
-      </div>
-
-      <div class="card" style="overflow:hidden;">
-        <div class="card-t" style="justify-content:space-between">
-          <span>👥 Alumnos</span>
-          <span style="font-size:11px;font-weight:400;color:var(--muted)" id="studentCount">0</span>
-        </div>
-        <div style="max-height:220px;overflow-y:auto" class="tbl-wrap">
-          <table><thead><tr><th>Nombre</th><th>Grado</th><th>Fotos</th><th>Hoy</th><th></th></tr></thead>
-          <tbody id="tStudents"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Sin alumnos</td></tr></tbody></table>
-        </div>
-      </div>
-
-      <div class="card" style="overflow:hidden;flex:1;">
-        <div class="card-t" style="justify-content:space-between">
-          <span>📋 Asistencia de hoy</span>
-          <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="exportCSV()">⬇ CSV</button>
-        </div>
-        <div style="max-height:220px;overflow-y:auto" class="tbl-wrap">
-          <table><thead><tr><th>Nombre</th><th>Grado</th><th>Hora</th><th>Estado</th><th>Conf.</th></tr></thead>
-          <tbody id="tAttendance"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Sin registros</td></tr></tbody></table>
-        </div>
-      </div>
-
-      <!-- Gestión de usuarios — solo admin -->
-      <div class="card" id="cardUsers" style="display:none">
-        <div class="card-t" style="display:flex;align-items:center;justify-content:space-between">
-          <span>👥 Operadores del sistema</span>
-          <button class="btn btn-primary" style="font-size:11px;padding:5px 12px"
-            onclick="toggleNewUserForm()">+ Nuevo</button>
-        </div>
-
-        <!-- Form nuevo usuario -->
-        <div id="newUserForm" style="display:none" class="new-user-form">
-          <div class="form-grid">
-            <div>
-              <label class="field-lbl">Nombre</label>
-              <input class="field-inp" id="nuName" type="text" placeholder="Nombre completo">
-            </div>
-            <div>
-              <label class="field-lbl">Rol</label>
-              <select class="field-inp" id="nuRole">
-                <option value="operator">Operador</option>
-                <option value="admin">Administrador</option>
-              </select>
-            </div>
-            <div class="full">
-              <label class="field-lbl">Correo</label>
-              <input class="field-inp" id="nuEmail" type="email" placeholder="correo@ipadavid.edu.pa">
-            </div>
-            <div class="full">
-              <label class="field-lbl">Contraseña</label>
-              <input class="field-inp" id="nuPass" type="password" placeholder="Mínimo 6 caracteres">
-            </div>
+          <div>
+            <label class="field-lbl">Rol</label>
+            <select class="field-inp" id="nuRole">
+              <option value="operator">Operador</option>
+              <option value="admin">Administrador</option>
+            </select>
           </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-primary" style="flex:1;font-size:12px;padding:8px" onclick="createUser()">Crear usuario</button>
-            <button class="btn btn-ghost" style="font-size:12px;padding:8px" onclick="toggleNewUserForm()">Cancelar</button>
+          <div class="full">
+            <label class="field-lbl">Correo</label>
+            <input class="field-inp" id="nuEmail" type="email" placeholder="correo@ipadavid.edu.pa">
+          </div>
+          <div class="full">
+            <label class="field-lbl">Contraseña</label>
+            <input class="field-inp" id="nuPass" type="password" placeholder="Mínimo 6 caracteres">
           </div>
         </div>
-
-        <div id="userList" style="margin-top:8px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" style="flex:1;font-size:12px;padding:8px" onclick="createUser()">Crear operador</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:8px" onclick="toggleNewUserForm()">Cancelar</button>
+        </div>
       </div>
-
+      <div id="userList" style="margin-top:8px"></div>
     </div>
   </div>
 </div>
@@ -938,7 +984,8 @@ function updateUserChip() {
   if (!authUser) return;
   document.getElementById('userChip').textContent = `👤 ${authUser.name.split(' ')[0]}`;
   // Mostrar gestión de usuarios solo al admin
-  document.getElementById('cardUsers').style.display = authUser.role === 'admin' ? '' : 'none';
+  const isAdmin = authUser.role === 'admin';
+  document.getElementById('tab-users').style.display = isAdmin ? '' : 'none';
 }
 
 function showUserMenu() {
@@ -1421,52 +1468,86 @@ async function registerStudent() {
 }
 
 // ── Students table ────────────────────────────────────────────────────────────
+let _allStudents = [];
+
 async function loadStudents() {
   document.getElementById('tStudents').innerHTML =
-    '<tr><td colspan="5" class="tbl-loading">Cargando</td></tr>';
+    '<tr><td colspan="7" class="tbl-loading">Cargando</td></tr>';
   document.getElementById('tAttendance').innerHTML =
-    '<tr><td colspan="5" class="tbl-loading">Cargando</td></tr>';
+    '<tr><td colspan="6" class="tbl-loading">Cargando</td></tr>';
   try {
     const [rS, rA] = await Promise.all([
       apiFetch('/api/students'), apiFetch('/api/attendance')
     ]);
     if (!rS || !rA) return;
     const [students, att] = await Promise.all([rS.json(), rA.json()]);
+    _allStudents = students;
     const today = new Date().toISOString().split('T')[0];
     const markedToday = new Set(att.filter(a=>a.date===today).map(a=>a.student_id));
 
+    // Badges
     document.getElementById('studentCount').textContent = `${students.length} alumnos`;
-    const tbody = document.getElementById('tStudents');
-    if (!students.length) {
-      tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Sin alumnos</td></tr>';
-      return;
-    }
-    tbody.innerHTML = students.map(s => {
-      const ini = s.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-      const marked = markedToday.has(s.id);
-      return `<tr>
-        <td><span class="ava-sm">${ini}</span>${s.name}</td>
-        <td style="color:var(--muted)">${s.grade}</td>
-        <td style="color:var(--accent)">${s.photo_count}📸</td>
-        <td><span class="pill ${marked?'pill-ok':'pill-no'}">${marked?'✓':'—'}</span></td>
-        <td><button class="btn btn-red" style="padding:0;width:44px;height:44px;font-size:14px;border-radius:8px" onclick="deleteStudent('${s.id}')">✕</button></td>
-      </tr>`;
-    }).join('');
+    document.getElementById('tabBadgeStudents').textContent = students.length;
+    document.getElementById('tabBadgeAtt').textContent = att.length;
+
+    renderStudentsTable(students, markedToday);
+
+    // Attendance summary bar
+    const present = att.filter(a=>a.status==='present').length;
+    const late    = att.filter(a=>a.status==='late').length;
+    document.getElementById('attSummary').innerHTML = `
+      <span style="background:rgba(34,197,94,.12);color:var(--accent);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">✓ ${present} Presentes</span>
+      <span style="background:rgba(251,191,36,.1);color:var(--warn);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">⏱ ${late} Tardíos</span>
+      <span style="background:rgba(244,63,94,.1);color:var(--danger);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">✗ ${students.length - present - late} Ausentes</span>`;
 
     // Attendance table
     const atbody = document.getElementById('tAttendance');
     if (!att.length) {
-      atbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Sin registros</td></tr>';
+      atbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Sin registros hoy</td></tr>';
       return;
     }
     atbody.innerHTML = att.map(a => `<tr>
       <td>${a.student_name}</td>
+      <td style="color:var(--muted)">${a.nivel||'—'}</td>
       <td style="color:var(--muted)">${a.grade}</td>
       <td style="font-family:'Syne',sans-serif">${a.time}</td>
       <td><span class="pill ${a.status==='present'?'pill-ok':'pill-late'}">${a.status==='present'?'Presente':'Tardío'}</span></td>
       <td style="color:var(--muted)">${a.confidence||0}%</td>
     </tr>`).join('');
   } catch(e) { console.warn('loadStudents:', e); }
+}
+
+function renderStudentsTable(students, markedToday) {
+  const tbody = document.getElementById('tStudents');
+  if (!students.length) {
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Sin alumnos registrados</td></tr>';
+    return;
+  }
+  tbody.innerHTML = students.map(s => {
+    const ini    = s.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const marked = markedToday ? markedToday.has(s.id) : false;
+    return `<tr>
+      <td><span class="ava-sm">${ini}</span>${s.name}</td>
+      <td style="color:var(--muted);font-size:11px">${s.cedula||'—'}</td>
+      <td style="color:var(--muted)">${s.nivel||'—'}</td>
+      <td style="color:var(--muted)">${s.grade}</td>
+      <td style="color:var(--accent)">${s.photo_count}📸</td>
+      <td><span class="pill ${marked?'pill-ok':'pill-no'}">${marked?'✓':'—'}</span></td>
+      <td><button class="btn btn-red" style="padding:0;width:36px;height:36px;font-size:13px;border-radius:8px" onclick="deleteStudent('${s.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterStudentsTable(q) {
+  if (!_allStudents.length) return;
+  const lq = q.toLowerCase();
+  const filtered = lq
+    ? _allStudents.filter(s =>
+        s.name.toLowerCase().includes(lq) ||
+        (s.cedula||'').toLowerCase().includes(lq) ||
+        (s.nivel||'').toLowerCase().includes(lq))
+    : _allStudents;
+  renderStudentsTable(filtered, null);
 }
 
 async function deleteStudent(id) {
@@ -1498,11 +1579,21 @@ function stopKioskCam() {
   }
 }
 
+function switchTab(name) {
+  ['register','students','attendance','users'].forEach(t => {
+    document.getElementById(`tab-${t}`)?.classList.toggle('active', t === name);
+    document.getElementById(`panel-${t}`)?.classList.toggle('active', t === name);
+  });
+  if (name === 'register') { /* cam off until user clicks */ }
+  if (name !== 'register') { stopRegCam(); setScanBtn(false); }
+}
+
 function goAdmin() {
   showOnly('sAdmin');
   stopKioskCam();
   stopRegCam();
   setScanBtn(false);
+  switchTab('students');
   loadStudents();
   if (authUser && authUser.role === 'admin') loadUsers();
 }
