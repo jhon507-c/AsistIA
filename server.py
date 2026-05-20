@@ -35,7 +35,7 @@ import numpy as np
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from PIL import Image
 
 # ── Logging ──────────────────────────────────────────────────────────────────
@@ -103,7 +103,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Servir el kiosk.html como archivo estático
+# Servir kiosk.html en la raíz con no-cache para evitar versiones desactualizadas
+@app.get("/", response_class=HTMLResponse)
+@app.get("/kiosk.html", response_class=HTMLResponse)
+async def serve_kiosk():
+    path = Path("static/kiosk.html")
+    if not path.exists():
+        return HTMLResponse("<h1>kiosk.html no encontrado</h1>", status_code=404)
+    content = path.read_text(encoding="utf-8")
+    return HTMLResponse(content=content, headers={
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Pragma": "no-cache"
+    })
+
+# Archivos estáticos (assets: logos, favicon)
 if Path("static").exists():
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -171,20 +184,15 @@ def init_db():
         except Exception:
             pass
 
-    # Crear o actualizar admin por defecto
+    # Crear admin por defecto solo si no existe
     existing = conn.execute("SELECT id FROM app_users WHERE email=?", (ADMIN_EMAIL,)).fetchone()
     if not existing:
         conn.execute(
             "INSERT INTO app_users (email, name, role, password_hash, active, created_at) VALUES (?,?,?,?,1,?)",
             (ADMIN_EMAIL, "Administrador", "admin", _hash_password(ADMIN_PASSWORD), datetime.now().isoformat())
         )
+        conn.commit()
         log.info(f"Admin creado: {ADMIN_EMAIL}")
-    else:
-        # Actualizar contraseña si cambió (re-hash en cada arranque)
-        conn.execute("UPDATE app_users SET password_hash=? WHERE email=?",
-                     (_hash_password(ADMIN_PASSWORD), ADMIN_EMAIL))
-        log.info(f"Admin password actualizado: {ADMIN_EMAIL}")
-    conn.commit()
 
     conn.close()
 
