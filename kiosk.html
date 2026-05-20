@@ -516,7 +516,7 @@ canvas.chart { width:100% !important; }
 </div>
 
 <!-- ══ LOGIN ══════════════════════════════════════════════════════ -->
-<div class="screen" id="sLogin">
+<div class="screen off" id="sLogin">
   <div class="login-card">
     <div class="login-logo"><img src="/static/logo-ipa-96.png" alt="IPA"></div>
     <div class="login-title">AsistIA</div>
@@ -546,7 +546,7 @@ canvas.chart { width:100% !important; }
     <div class="login-err" id="loginErr"></div>
     <button class="btn-login" id="btnLogin" onclick="doLogin()">Iniciar sesión</button>
     <div class="login-inst">Acceso restringido — solo personal autorizado</div>
-    <div style="text-align:center;font-size:9px;color:var(--muted);margin-top:8px;opacity:.5">v2026.05.20-r2</div>
+    <div style="text-align:center;font-size:9px;color:var(--muted);margin-top:8px;opacity:.5">v2026.05.20-r3</div>
   </div>
 </div>
 
@@ -2013,6 +2013,8 @@ async function deleteUser(id, name) {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function initApp() {
+  // Asegurar que el login esté oculto cuando ya hay sesión
+  document.getElementById('sLogin').classList.add('off');
   updateUserChip();
   setLoad(90, 'Conectando...');
   connectKioskWs();
@@ -2020,7 +2022,6 @@ async function initApp() {
   setTimeout(() => {
     doneLoading();
     document.getElementById('sKiosk').classList.remove('off');
-    // Arranca cámara solo cuando el kiosko es visible
     startKiosk();
   }, 400);
 }
