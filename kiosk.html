@@ -29,7 +29,8 @@
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
-  font-family: 'DM Sans', sans-serif; user-select: none; }
+  font-family: 'DM Sans', sans-serif; user-select: none;
+  -webkit-transform: translateZ(0); transform: translateZ(0); }
 
 /* grid bg */
 body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
@@ -124,9 +125,13 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .kiosk-body { flex:1;display:grid;grid-template-columns:1fr 320px;overflow:hidden; }
 
 /* camera col */
-.cam-col { position:relative;background:#030d07;overflow:hidden;display:flex;align-items:center;justify-content:center; }
-#vKiosk { width:100%;height:100%;object-fit:cover;transform:scaleX(-1); }
-#cvKiosk { position:absolute;inset:0;transform:scaleX(-1);pointer-events:none; }
+.cam-col { position:relative;background:#030d07;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  isolation:isolate; /* contiene el compositing del video */
+  transform:translateZ(0); }
+#vKiosk { width:100%;height:100%;object-fit:cover;transform:scaleX(-1);
+  will-change:transform;backface-visibility:hidden; }
+#cvKiosk { position:absolute;inset:0;transform:scaleX(-1);pointer-events:none;
+  will-change:transform; }
 
 /* face target ring */
 .face-ring { position:absolute;width:220px;height:260px;
@@ -243,8 +248,10 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 
 /* Auto-capture camera */
 .reg-cam-wrap { position:relative;width:100%;border-radius:10px;overflow:hidden;
-  background:#030d07;border:1px solid var(--border);aspect-ratio:4/3;margin-bottom:12px; }
-#vReg { width:100%;height:100%;object-fit:cover;transform:scaleX(-1); }
+  background:#030d07;border:1px solid var(--border);aspect-ratio:4/3;margin-bottom:12px;
+  isolation:isolate;transform:translateZ(0); }
+#vReg { width:100%;height:100%;object-fit:cover;transform:scaleX(-1);
+  will-change:transform;backface-visibility:hidden; }
 #cvReg { position:absolute;inset:0;transform:scaleX(-1);pointer-events:none; }
 
 /* cam idle placeholder */
@@ -1354,6 +1361,26 @@ function resetCapture() {
 
 // ── Register student ──────────────────────────────────────────────────────────
 async function registerStudent() {
+  const mode = document.getElementById('btnRegister').dataset.mode;
+  if (mode === 'biometric' && selectedStudent) {
+    if (capturedEmbeddings.length === 0) { toast('⚠ Captura las fotos primero'); return; }
+    const btn = document.getElementById('btnRegister');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    try {
+      await apiFetch(`/api/students/${selectedStudent}/biometric`, {
+        method:'PATCH', body: { embeddings: capturedEmbeddings }
+      });
+      toast('✓ Biometría actualizada correctamente');
+      selectedStudent = null;
+      document.getElementById('btnRegister').dataset.mode = '';
+      document.getElementById('searchInput').value = '';
+      resetCapture();
+      loadStudents();
+    } catch(e) { toast('Error al guardar biometría'); }
+    btn.disabled = false; btn.textContent = 'Registrar Alumno';
+    return;
+  }
+
   const name = document.getElementById('rName2').value.trim();
   const grade = document.getElementById('rGrade2').value;
   if (!name) { toast('⚠ Ingresa el nombre'); return; }
@@ -1716,30 +1743,6 @@ function selectForBiometric(id, name) {
   resetCapture();
 }
 
-// Override registerStudent para manejar modo biometría
-const _origRegister = registerStudent;
-async function registerStudent() {
-  const mode = document.getElementById('btnRegister').dataset.mode;
-  if (mode === 'biometric' && selectedStudent) {
-    if (capturedEmbeddings.length === 0) { toast('⚠ Captura las fotos primero'); return; }
-    const btn = document.getElementById('btnRegister');
-    btn.disabled = true; btn.textContent = 'Guardando...';
-    try {
-      await apiFetch(`/api/students/${selectedStudent}/biometric`, {
-        method:'PATCH', body: { embeddings: capturedEmbeddings }
-      });
-      toast('✓ Biometría actualizada correctamente');
-      selectedStudent = null;
-      document.getElementById('btnRegister').dataset.mode = '';
-      document.getElementById('searchInput').value = '';
-      resetCapture();
-      loadStudents();
-    } catch(e) { toast('Error al guardar biometría'); }
-    btn.disabled = false; btn.textContent = 'Registrar Alumno';
-    return;
-  }
-  await _origRegister();
-}
 
 // ── USER MANAGEMENT ───────────────────────────────────────────────────────────
 function toggleNewUserForm() {
