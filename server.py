@@ -1,0 +1,761 @@
+"""
+AsistIA - Backend de Reconocimiento Facial
+==========================================
+Requiere Python 3.9+
+
+Instalación:
+    pip install fastapi uvicorn websockets insightface opencv-python numpy pillow
+
+Ejecutar:
+    uvicorn server:app --host 0.0.0.0 --port 8000 --reload
+
+Acceder al kiosko:
+    Abrir kiosk.html en el navegador de la tableta
+    (debe estar en la misma red que el servidor)
+"""
+
+import asyncio
+import base64
+import csv
+import io
+import json
+import logging
+import sqlite3
+import time
+from contextlib import asynccontextmanager
+from datetime import datetime, date, timedelta
+from pathlib import Path
+from typing import Optional
+
+import cv2
+import numpy as np
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from PIL import Image
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+log = logging.getLogger("asistia")
+
+# ── Globals ───────────────────────────────────────────────────────────────────
+DB_PATH = "asistia.db"
+MODELS_DIR = Path("models")          # InsightFace descarga aquí automáticamente
+RECOGNITION_THRESHOLD = 0.45         # Distancia máxima para considerar match (menor = más estricto)
+LATE_HOUR = 7                        # Hora límite
+LATE_MINUTE = 15                     # Minuto límite (7:15 AM)
+
+face_app = None                      # InsightFace app (se carga al iniciar)
+student_cache: dict = {}             # Cache de embeddings: {id: [embedding, ...]}
+
+
+# ── Lifespan (startup / shutdown) ─────────────────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global face_app
+    log.info("Iniciando AsistIA...")
+    init_db()
+    log.info("Base de datos inicializada ✓")
+    
+    try:
+        import insightface
+        face_app = insightface.app.FaceAnalysis(
+            name="buffalo_sc",          # Modelo rápido y liviano (~30MB)
+            root=str(MODELS_DIR),
+            providers=["CPUExecutionProvider"]
+        )
+        face_app.prepare(ctx_id=0, det_size=(320, 320))
+        log.info("InsightFace cargado ✓")
+    except Exception as e:
+        log.error(f"Error cargando InsightFace: {e}")
+        log.warning("Corriendo en modo DEMO (sin reconocimiento real)")
+
+    load_student_cache()
+    log.info(f"Cache cargado: {len(student_cache)} estudiantes ✓")
+    log.info("AsistIA listo en http://0.0.0.0:8000")
+    
+    yield
+    
+    log.info("Apagando AsistIA...")
+
+
+# ── App ───────────────────────────────────────────────────────────────────────
+app = FastAPI(title="AsistIA", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Servir el kiosk.html como archivo estático
+if Path("static").exists():
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# ── Database ──────────────────────────────────────────────────────────────────
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    conn = get_db()
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS students (
+            id          TEXT PRIMARY KEY,
+            name        TEXT NOT NULL,
+            cedula      TEXT DEFAULT '',
+            nivel       TEXT DEFAULT '',
+            grade       TEXT NOT NULL,
+            has_biometric INTEGER DEFAULT 0,
+            created_at  TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS face_embeddings (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id  TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+            embedding   BLOB NOT NULL,
+            created_at  TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS attendance (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id  TEXT NOT NULL REFERENCES students(id),
+            student_name TEXT NOT NULL,
+            grade       TEXT NOT NULL,
+            date        TEXT NOT NULL,
+            time        TEXT NOT NULL,
+            status      TEXT NOT NULL,
+            confidence  REAL,
+            UNIQUE(student_id, date)
+        );
+    """)
+    # Migración: añadir columnas nuevas si la DB ya existía
+    for col, default in [("cedula","''"), ("nivel","''"), ("has_biometric","0")]:
+        try:
+            conn.execute(f"ALTER TABLE students ADD COLUMN {col} TEXT DEFAULT {default}")
+            conn.commit()
+        except Exception:
+            pass
+    conn.close()
+
+
+def load_student_cache():
+    """Carga todos los embeddings en memoria para comparación rápida."""
+    global student_cache
+    student_cache = {}
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT fe.student_id, fe.embedding
+        FROM face_embeddings fe
+        JOIN students s ON s.id = fe.student_id
+    """).fetchall()
+    conn.close()
+
+    for row in rows:
+        sid = row["student_id"]
+        embedding = np.frombuffer(row["embedding"], dtype=np.float32)
+        if sid not in student_cache:
+            student_cache[sid] = []
+        student_cache[sid].append(embedding)
+
+    log.info(f"Cache actualizado: {len(student_cache)} estudiantes, "
+             f"{sum(len(v) for v in student_cache.values())} embeddings totales")
+
+
+# ── Face utilities ────────────────────────────────────────────────────────────
+def decode_frame(b64_data: str) -> Optional[np.ndarray]:
+    """Decodifica un frame base64 → numpy array BGR."""
+    try:
+        if "," in b64_data:
+            b64_data = b64_data.split(",", 1)[1]
+        raw = base64.b64decode(b64_data)
+        img = Image.open(io.BytesIO(raw)).convert("RGB")
+        return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+    except Exception as e:
+        log.warning(f"Error decodificando frame: {e}")
+        return None
+
+
+def get_faces(frame: np.ndarray):
+    """Detecta rostros en un frame usando InsightFace."""
+    if face_app is None:
+        return []
+    try:
+        return face_app.get(frame)
+    except Exception as e:
+        log.warning(f"Error en detección: {e}")
+        return []
+
+
+def cosine_distance(a: np.ndarray, b: np.ndarray) -> float:
+    """Distancia coseno entre dos embeddings (0 = idéntico, 2 = opuesto)."""
+    a_norm = a / (np.linalg.norm(a) + 1e-6)
+    b_norm = b / (np.linalg.norm(b) + 1e-6)
+    return float(1 - np.dot(a_norm, b_norm))
+
+
+def find_match(query_embedding: np.ndarray) -> tuple[Optional[str], float]:
+    """Busca el estudiante más parecido en el cache."""
+    best_id = None
+    best_dist = float("inf")
+
+    for student_id, embeddings in student_cache.items():
+        # Promedia la distancia contra todas las fotos del estudiante
+        distances = [cosine_distance(query_embedding, e) for e in embeddings]
+        avg_dist = sum(distances) / len(distances)
+        if avg_dist < best_dist:
+            best_dist = avg_dist
+            best_id = student_id
+
+    if best_dist <= RECOGNITION_THRESHOLD:
+        confidence = round((1 - best_dist / RECOGNITION_THRESHOLD) * 100, 1)
+        return best_id, confidence
+    return None, 0.0
+
+
+def determine_status() -> str:
+    now = datetime.now()
+    if now.hour > LATE_HOUR or (now.hour == LATE_HOUR and now.minute >= LATE_MINUTE):
+        return "late"
+    return "present"
+
+
+# ── WebSocket: Kiosko (reconocimiento) ───────────────────────────────────────
+class ConnectionManager:
+    def __init__(self):
+        self.active: list[WebSocket] = []
+
+    async def connect(self, ws: WebSocket):
+        await ws.accept()
+        self.active.append(ws)
+
+    def disconnect(self, ws: WebSocket):
+        self.active.discard(ws) if hasattr(self.active, "discard") else None
+        if ws in self.active:
+            self.active.remove(ws)
+
+kiosk_manager = ConnectionManager()
+register_manager = ConnectionManager()
+
+# Evitar marcar el mismo rostro múltiples veces en poco tiempo
+recent_marks: dict[str, float] = {}   # {student_id: timestamp}
+COOLDOWN_SECONDS = 8
+
+
+@app.websocket("/ws/kiosk")
+async def ws_kiosk(ws: WebSocket):
+    """
+    Recibe frames del kiosco, reconoce rostros y devuelve resultado.
+    
+    Protocolo:
+      Cliente → { "frame": "<base64 jpeg>" }
+      Servidor → { "type": "match"|"no_face"|"unknown"|"already_marked",
+                   "student": {...}, "confidence": float, "status": str }
+    """
+    await kiosk_manager.connect(ws)
+    log.info("Kiosko conectado")
+    
+    try:
+        while True:
+            data = await ws.receive_json()
+            frame = decode_frame(data.get("frame", ""))
+            
+            if frame is None:
+                await ws.send_json({"type": "error", "msg": "Frame inválido"})
+                continue
+
+            faces = get_faces(frame)
+
+            if not faces:
+                await ws.send_json({"type": "no_face"})
+                continue
+
+            # Usar el rostro más grande (más cercano a la cámara)
+            face = max(faces, key=lambda f: (f.bbox[2]-f.bbox[0]) * (f.bbox[3]-f.bbox[1]))
+            embedding = face.embedding
+
+            if embedding is None:
+                await ws.send_json({"type": "no_face"})
+                continue
+
+            student_id, confidence = find_match(embedding)
+
+            if student_id is None:
+                await ws.send_json({"type": "unknown", "confidence": 0})
+                continue
+
+            # Cooldown — evitar marcar en loop
+            now = time.time()
+            if student_id in recent_marks and now - recent_marks[student_id] < COOLDOWN_SECONDS:
+                await ws.send_json({"type": "already_marked", "student_id": student_id})
+                continue
+
+            recent_marks[student_id] = now
+
+            # Obtener datos del estudiante
+            conn = get_db()
+            student = conn.execute(
+                "SELECT * FROM students WHERE id = ?", (student_id,)
+            ).fetchone()
+            conn.close()
+
+            if not student:
+                await ws.send_json({"type": "unknown"})
+                continue
+
+            # Registrar asistencia
+            today = date.today().isoformat()
+            time_str = datetime.now().strftime("%H:%M")
+            status = determine_status()
+
+            conn = get_db()
+            try:
+                conn.execute("""
+                    INSERT INTO attendance (student_id, student_name, grade, date, time, status, confidence)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (student_id, student["name"], student["grade"], today, time_str, status, confidence))
+                conn.commit()
+                log.info(f"✓ Asistencia: {student['name']} ({confidence}%) - {status}")
+            except sqlite3.IntegrityError:
+                # Ya marcado hoy (UNIQUE constraint)
+                status = "already_today"
+                log.info(f"→ Ya marcado: {student['name']}")
+            finally:
+                conn.close()
+
+            await ws.send_json({
+                "type": "match",
+                "student": {
+                    "id": student_id,
+                    "name": student["name"],
+                    "grade": student["grade"],
+                },
+                "confidence": confidence,
+                "status": status,
+                "time": time_str,
+            })
+
+    except WebSocketDisconnect:
+        kiosk_manager.disconnect(ws)
+        log.info("Kiosko desconectado")
+    except Exception as e:
+        log.error(f"Error en kiosko WS: {e}")
+        kiosk_manager.disconnect(ws)
+
+
+# ── Pose helpers ─────────────────────────────────────────────────────────────
+# Umbrales de yaw normalizado por fase.
+# Estimamos yaw desde los 5 kps del detector:
+#   kps[0]=ojo_izq  kps[1]=ojo_der  kps[2]=nariz
+# Asimetría = (dist_nariz_a_ojo_izq - dist_nariz_a_ojo_der) / ancho_entre_ojos
+#   ~0   → frontal
+#   > 0  → cara girada a la izquierda (ojo der más cerca de nariz)
+#   < 0  → cara girada a la derecha
+POSE_THRESHOLDS = {
+    0: (-0.25, 0.25),   # frente
+    1: ( 0.30, 0.90),   # izquierda
+    2: (-0.90, -0.30),  # derecha
+}
+
+def estimate_yaw(face) -> Optional[float]:
+    """Yaw normalizado desde keypoints. Retorna None si no hay kps."""
+    kps = face.kps if face.kps is not None else None
+    if kps is None or len(kps) < 3:
+        # Fallback: intentar desde face.pose si existe
+        if face.pose is not None:
+            return float(face.pose[1]) / 60.0  # normalizar ~±60° → ±1
+        return None
+    eye_l = np.array(kps[0])
+    eye_r = np.array(kps[1])
+    nose  = np.array(kps[2])
+    eye_width = float(np.linalg.norm(eye_r - eye_l))
+    if eye_width < 1:
+        return None
+    dist_l = float(nose[0] - eye_l[0])   # positivo = nariz a la derecha del ojo izq
+    dist_r = float(eye_r[0] - nose[0])   # positivo = ojo der a la derecha de nariz
+    # Asimetría normalizada: positivo → girado a la izquierda
+    return (dist_l - dist_r) / eye_width
+
+
+def check_pose(face, phase: int) -> tuple[bool, float, str]:
+    """Devuelve (pose_ok, yaw_norm, mensaje_guia)."""
+    yaw = estimate_yaw(face)
+    if yaw is None:
+        return True, 0.0, ""   # sin kps → no bloquear
+
+    lo, hi = POSE_THRESHOLDS[phase]
+    if lo <= yaw <= hi:
+        return True, yaw, ""
+
+    if phase == 0:
+        msg = "Mira directo a la cámara"
+    elif phase == 1:
+        msg = "Gira más a tu izquierda" if yaw < lo else "Baja el giro — casi de frente"
+    else:
+        msg = "Gira más a tu derecha" if yaw > hi else "Baja el giro — casi de frente"
+
+    return False, yaw, msg
+
+
+# ── WebSocket: Registro automático ───────────────────────────────────────────
+@app.websocket("/ws/register")
+async def ws_register(ws: WebSocket):
+    """
+    Detecta rostros en tiempo real para guiar el registro con control de pose.
+
+    Cliente → { "frame": "<base64>", "phase": 0|1|2 }
+    Servidor → { "type": "detected"|"no_face"|"poor_quality"|"wrong_pose",
+                 "phase": int, "quality": float, "yaw": float,
+                 "pose_ok": bool, "guide": str, "embedding": [...] }
+    """
+    await register_manager.connect(ws)
+    log.info("Registro conectado")
+
+    try:
+        while True:
+            data = await ws.receive_json()
+            frame = decode_frame(data.get("frame", ""))
+            phase = data.get("phase", 0)    # 0=frente, 1=izq, 2=der
+
+            if frame is None:
+                await ws.send_json({"type": "error"})
+                continue
+
+            faces = get_faces(frame)
+
+            if not faces:
+                await ws.send_json({"type": "no_face", "phase": phase, "yaw": 0})
+                continue
+
+            face = max(faces, key=lambda f: (f.bbox[2]-f.bbox[0]) * (f.bbox[3]-f.bbox[1]))
+
+            # Calidad
+            bbox = face.bbox
+            face_area = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1])
+            frame_area = frame.shape[0] * frame.shape[1]
+            size_ratio = face_area / frame_area
+            det_score = float(face.det_score) if hasattr(face, "det_score") else 0.9
+            quality = min(100, round(size_ratio * 400 + det_score * 40, 1))
+
+            if quality < 30:
+                await ws.send_json({
+                    "type": "poor_quality",
+                    "phase": phase,
+                    "quality": quality,
+                    "yaw": 0,
+                    "msg": "Acércate más a la cámara"
+                })
+                continue
+
+            # Pose
+            pose_ok, yaw, guide = check_pose(face, phase)
+            embedding = face.embedding.tolist() if face.embedding is not None else None
+
+            if not pose_ok:
+                await ws.send_json({
+                    "type": "wrong_pose",
+                    "phase": phase,
+                    "quality": quality,
+                    "yaw": round(yaw, 1),
+                    "pose_ok": False,
+                    "guide": guide,
+                })
+                continue
+
+            await ws.send_json({
+                "type": "detected",
+                "phase": phase,
+                "quality": quality,
+                "yaw": round(yaw, 1),
+                "pose_ok": True,
+                "guide": "",
+                "embedding": embedding,
+                "bbox": [float(x) for x in face.bbox],
+            })
+
+    except WebSocketDisconnect:
+        register_manager.disconnect(ws)
+        log.info("Registro desconectado")
+    except Exception as e:
+        log.error(f"Error en registro WS: {e}")
+        register_manager.disconnect(ws)
+
+
+# ── REST API ──────────────────────────────────────────────────────────────────
+
+@app.post("/api/students")
+async def create_student(body: dict):
+    """Crea alumno con biométrica (embeddings requeridos)."""
+    name  = body.get("name", "").strip()
+    grade = body.get("grade", "").strip()
+    cedula = body.get("cedula", "").strip()
+    nivel  = body.get("nivel", "").strip()
+    embeddings = body.get("embeddings", [])
+
+    if not name or not grade:
+        raise HTTPException(400, "Nombre y grado son requeridos")
+    if not embeddings:
+        raise HTTPException(400, "Se necesita al menos 1 embedding facial")
+
+    student_id = f"s_{int(time.time() * 1000)}"
+    now = datetime.now().isoformat()
+
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO students (id, name, cedula, nivel, grade, has_biometric, created_at) VALUES (?,?,?,?,?,1,?)",
+        (student_id, name, cedula, nivel, grade, now)
+    )
+    for emb in embeddings:
+        arr = np.array(emb, dtype=np.float32)
+        conn.execute(
+            "INSERT INTO face_embeddings (student_id, embedding, created_at) VALUES (?,?,?)",
+            (student_id, arr.tobytes(), now)
+        )
+    conn.commit()
+    conn.close()
+    load_student_cache()
+    log.info(f"Alumno registrado: {name} ({len(embeddings)} fotos)")
+    return {"id": student_id, "name": name, "grade": grade}
+
+
+@app.get("/api/students")
+async def list_students(q: Optional[str] = None):
+    conn = get_db()
+    if q:
+        pattern = f"%{q}%"
+        rows = conn.execute("""
+            SELECT s.*, COUNT(fe.id) as photo_count
+            FROM students s
+            LEFT JOIN face_embeddings fe ON fe.student_id = s.id
+            WHERE s.name LIKE ? OR s.cedula LIKE ? OR s.nivel LIKE ?
+            GROUP BY s.id ORDER BY s.name LIMIT 50
+        """, (pattern, pattern, pattern)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT s.*, COUNT(fe.id) as photo_count
+            FROM students s
+            LEFT JOIN face_embeddings fe ON fe.student_id = s.id
+            GROUP BY s.id ORDER BY s.name
+        """).fetchall()
+    conn.close()
+    return [dict(s) for s in rows]
+
+
+@app.patch("/api/students/{student_id}/biometric")
+async def add_biometric(student_id: str, body: dict):
+    """Añade embeddings biométricos a un alumno ya existente (importado por CSV)."""
+    embeddings = body.get("embeddings", [])
+    if not embeddings:
+        raise HTTPException(400, "Se necesita al menos 1 embedding")
+
+    conn = get_db()
+    student = conn.execute("SELECT id FROM students WHERE id=?", (student_id,)).fetchone()
+    if not student:
+        conn.close()
+        raise HTTPException(404, "Alumno no encontrado")
+
+    now = datetime.now().isoformat()
+    # Eliminar embeddings anteriores y reemplazar
+    conn.execute("DELETE FROM face_embeddings WHERE student_id=?", (student_id,))
+    for emb in embeddings:
+        arr = np.array(emb, dtype=np.float32)
+        conn.execute(
+            "INSERT INTO face_embeddings (student_id, embedding, created_at) VALUES (?,?,?)",
+            (student_id, arr.tobytes(), now)
+        )
+    conn.execute("UPDATE students SET has_biometric=1 WHERE id=?", (student_id,))
+    conn.commit()
+    conn.close()
+    load_student_cache()
+    log.info(f"Biométrica actualizada: {student_id} ({len(embeddings)} fotos)")
+    return {"ok": True}
+
+
+@app.post("/api/students/import")
+async def import_csv(body: dict):
+    """
+    Importa alumnos desde CSV parseado en el frontend.
+    body: { "rows": [{"name":"..","cedula":"..","nivel":"..","grade":".."}] }
+    Ignora duplicados por cédula.
+    """
+    rows = body.get("rows", [])
+    if not rows:
+        raise HTTPException(400, "Sin filas")
+
+    now = datetime.now().isoformat()
+    conn = get_db()
+    imported, skipped = 0, 0
+
+    for row in rows:
+        name   = str(row.get("name","")).strip()
+        cedula = str(row.get("cedula","")).strip()
+        nivel  = str(row.get("nivel","")).strip()
+        grade  = str(row.get("grade", nivel)).strip() or "Sin grado"
+        if not name:
+            skipped += 1
+            continue
+        # Verificar duplicado por cédula
+        if cedula:
+            exists = conn.execute("SELECT id FROM students WHERE cedula=?", (cedula,)).fetchone()
+            if exists:
+                skipped += 1
+                continue
+        student_id = f"s_{int(time.time()*1000)}_{imported}"
+        conn.execute(
+            "INSERT INTO students (id,name,cedula,nivel,grade,has_biometric,created_at) VALUES (?,?,?,?,?,0,?)",
+            (student_id, name, cedula, nivel, grade, now)
+        )
+        imported += 1
+
+    conn.commit()
+    conn.close()
+    load_student_cache()
+    log.info(f"CSV importado: {imported} alumnos, {skipped} omitidos")
+    return {"imported": imported, "skipped": skipped}
+
+
+@app.delete("/api/students/{student_id}")
+async def delete_student(student_id: str):
+    conn = get_db()
+    conn.execute("DELETE FROM students WHERE id=?", (student_id,))
+    conn.commit()
+    conn.close()
+    load_student_cache()
+    return {"ok": True}
+
+
+@app.get("/api/stats/dashboard")
+async def dashboard_stats(days: int = 7):
+    """Datos para gráficas del dashboard: últimos N días."""
+    conn = get_db()
+    today = date.today()
+
+    # Serie de días
+    dates = [(today - timedelta(days=i)).isoformat() for i in range(days-1, -1, -1)]
+
+    # Asistencia por día
+    daily = []
+    for d in dates:
+        row = conn.execute("""
+            SELECT
+                SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) as present,
+                SUM(CASE WHEN status='late'    THEN 1 ELSE 0 END) as late,
+                COUNT(*) as total
+            FROM attendance WHERE date=?
+        """, (d,)).fetchone()
+        daily.append({
+            "date": d,
+            "present": row["present"] or 0,
+            "late":    row["late"]    or 0,
+            "total":   row["total"]   or 0,
+        })
+
+    # Totales de hoy
+    today_str = today.isoformat()
+    today_row = conn.execute("""
+        SELECT
+            SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) as present,
+            SUM(CASE WHEN status='late'    THEN 1 ELSE 0 END) as late,
+            COUNT(*) as marked
+        FROM attendance WHERE date=?
+    """, (today_str,)).fetchone()
+    total_students = conn.execute("SELECT COUNT(*) FROM students").fetchone()[0]
+    bio_students   = conn.execute("SELECT COUNT(*) FROM students WHERE has_biometric=1").fetchone()[0]
+
+    # Top 5 alumnos más tardíos (últimos 30 días)
+    late_30 = (today - timedelta(days=30)).isoformat()
+    top_late = conn.execute("""
+        SELECT student_name, COUNT(*) as late_count
+        FROM attendance
+        WHERE status='late' AND date >= ?
+        GROUP BY student_id ORDER BY late_count DESC LIMIT 5
+    """, (late_30,)).fetchall()
+
+    # Distribución por nivel
+    by_nivel = conn.execute("""
+        SELECT nivel, COUNT(*) as cnt FROM students WHERE nivel != '' GROUP BY nivel ORDER BY cnt DESC
+    """).fetchall()
+
+    conn.close()
+    return {
+        "daily":          daily,
+        "today_present":  today_row["present"] or 0,
+        "today_late":     today_row["late"]    or 0,
+        "today_absent":   total_students - (today_row["marked"] or 0),
+        "total_students": total_students,
+        "bio_students":   bio_students,
+        "top_late":       [dict(r) for r in top_late],
+        "by_nivel":       [dict(r) for r in by_nivel],
+    }
+
+
+@app.get("/api/attendance")
+async def get_attendance(fecha: Optional[str] = None):
+    today = fecha or date.today().isoformat()
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT * FROM attendance WHERE date = ? ORDER BY time",
+        (today,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+@app.get("/api/attendance/stats")
+async def get_stats(fecha: Optional[str] = None):
+    today = fecha or date.today().isoformat()
+    conn = get_db()
+    row = conn.execute("""
+        SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) as present,
+            SUM(CASE WHEN status='late'    THEN 1 ELSE 0 END) as late
+        FROM attendance WHERE date = ?
+    """, (today,)).fetchone()
+    total_students = conn.execute("SELECT COUNT(*) FROM students").fetchone()[0]
+    conn.close()
+    return {
+        "date": today,
+        "total_marked": row["total"],
+        "present": row["present"] or 0,
+        "late": row["late"] or 0,
+        "absent": total_students - (row["total"] or 0),
+        "total_students": total_students,
+    }
+
+
+@app.get("/api/attendance/export")
+async def export_csv(fecha: Optional[str] = None):
+    today = fecha or date.today().isoformat()
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT student_name, grade, time, status, confidence FROM attendance WHERE date = ? ORDER BY time",
+        (today,)
+    ).fetchall()
+    conn.close()
+
+    lines = ["Nombre,Grado,Hora,Estado,Confianza"]
+    for r in rows:
+        lines.append(f"{r['student_name']},{r['grade']},{r['time']},{r['status']},{r['confidence']}%")
+
+    from fastapi.responses import Response
+    return Response(
+        content="\n".join(lines),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=asistencia_{today}.csv"}
+    )
+
+
+@app.get("/api/health")
+async def health():
+    return {
+        "status": "ok",
+        "models_loaded": face_app is not None,
+        "students_cached": len(student_cache),
+        "time": datetime.now().isoformat(),
+    }

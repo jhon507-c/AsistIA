@@ -1,0 +1,32 @@
+# Base de datos — contiene datos personales, no subir al repo
+asistia.db
+*.db
+*.db-shm
+*.db-wal
+
+# Modelos InsightFace — binarios grandes, se descargan en instalación
+models/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.env
+*.egg-info/
+dist/
+build/
+
+# Logs
+logs/
+*.log
+
+# Static — se genera desde kiosk.html al instalar
+static/
+
+# OS
+.DS_Store
+Thumbs.db
