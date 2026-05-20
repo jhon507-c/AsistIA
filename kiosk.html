@@ -215,8 +215,10 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 /* ══════════════════════════════════════════
    REGISTER SCREEN
 ══════════════════════════════════════════ */
-#sAdmin { background:var(--bg);overflow-y:auto;padding:28px 32px;gap:20px;
+#sAdmin { background:var(--bg);overflow:hidden;padding:0;gap:0;
   flex-direction:column;justify-content:flex-start; }
+.adm-fixed { padding:20px 32px 0;flex-shrink:0; }
+.adm-scroll { flex:1;overflow-y:auto;padding:0 32px 28px; }
 /* ══ ADMIN TABS ══════════════════════════════════════════════════ */
 .adm-hdr { display:flex;align-items:center;gap:16px;width:100%;margin-bottom:4px; }
 .adm-title { font-family:'Syne',sans-serif;font-weight:800;font-size:22px;flex:1; }
@@ -233,8 +235,7 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 .btn-red:hover { background:rgba(244,63,94,.22); }
 
 /* Tab nav */
-.adm-tabs { display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto;
-  position:sticky;top:0;z-index:20;background:var(--bg);padding-top:4px; }
+.adm-tabs { display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:0;overflow-x:auto; }
 .adm-tab { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:9px 16px;
   border-radius:10px 10px 0 0;border:none;background:transparent;color:var(--muted);
   cursor:pointer;transition:.2s;white-space:nowrap;letter-spacing:.3px; }
@@ -494,7 +495,8 @@ canvas.chart { width:100% !important; }
   .kiosk-body { grid-template-columns:1fr; }
   .side { display:none; }
   .reg-layout { grid-template-columns:1fr; }
-  #sAdmin { padding:16px; }
+  .adm-fixed { padding:14px 16px 0; }
+  .adm-scroll { padding:0 16px 20px; }
   .kpi-row { grid-template-columns:1fr 1fr; }
   .charts-grid,.charts-grid3 { grid-template-columns:1fr; }
   #sDash { padding:14px; }
@@ -657,13 +659,14 @@ canvas.chart { width:100% !important; }
 
 <!-- ══ ADMIN ══════════════════════════════════════════════════════ -->
 <div class="screen off" id="sAdmin">
-  <div class="adm-hdr">
-    <div class="adm-title">Panel de <span>Administración</span></div>
-    <button class="btn btn-ghost" style="font-size:12px" onclick="goKiosk()">← Kiosko</button>
-  </div>
-
-  <!-- Tab nav -->
-  <div class="adm-tabs">
+  <!-- Header fijo — nunca se mueve -->
+  <div class="adm-fixed">
+    <div class="adm-hdr">
+      <div class="adm-title">Panel de <span>Administración</span></div>
+      <button class="btn btn-ghost" style="font-size:12px" onclick="goKiosk()">← Kiosko</button>
+    </div>
+    <!-- Tab nav -->
+    <div class="adm-tabs">
     <button class="adm-tab" id="tab-register"    onclick="switchTab('register')">📸 Registrar</button>
     <button class="adm-tab active" id="tab-students" onclick="switchTab('students')">
       👥 Alumnos <span class="adm-tab-badge" id="tabBadgeStudents">0</span>
@@ -673,6 +676,10 @@ canvas.chart { width:100% !important; }
     </button>
     <button class="adm-tab" id="tab-users" style="display:none" onclick="switchTab('users')">⚙ Operadores</button>
   </div>
+  </div><!-- /adm-fixed -->
+
+  <!-- Área scrollable — solo el contenido de la pestaña activa -->
+  <div class="adm-scroll">
 
   <!-- ── TAB: Registrar ── -->
   <div class="adm-panel" id="panel-register">
@@ -875,6 +882,8 @@ canvas.chart { width:100% !important; }
       <div id="userList" style="margin-top:8px"></div>
     </div>
   </div>
+
+  </div><!-- /adm-scroll -->
 </div>
 
 <!-- ══ USER MENU MODAL ════════════════════════════════════════ -->
@@ -1949,14 +1958,14 @@ async function deleteUser(id, name) {
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function initApp() {
   updateUserChip();
-  setLoad(70, 'Iniciando cámara...');
-  await startKiosk();
-  setLoad(90, 'Conectando WebSocket...');
+  setLoad(90, 'Conectando...');
   connectKioskWs();
   setLoad(100, '¡Listo!');
   setTimeout(() => {
     doneLoading();
     document.getElementById('sKiosk').classList.remove('off');
+    // Arranca cámara solo cuando el kiosko es visible
+    startKiosk();
   }, 400);
 }
 
