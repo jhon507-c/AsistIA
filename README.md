@@ -281,6 +281,118 @@ Abrir en el navegador: `http://localhost:8000/static/kiosk.html`
 
 ---
 
+## Despliegue con Coolify
+
+Coolify es una plataforma self-hosted que permite desplegar la aplicación desde el repositorio de GitHub con un par de clics, sin tocar la terminal del servidor. Incluye proxy automático (HTTPS), variables de entorno y volúmenes persistentes.
+
+### Requisitos previos
+
+- Coolify instalado en un VPS o servidor propio ([docs.coolify.io](https://docs.coolify.io))
+- Repositorio de GitHub conectado a Coolify
+- Al menos **2 GB de RAM** en el servidor Coolify (el modelo InsightFace ocupa ~500 MB en memoria)
+
+---
+
+### Paso 1 — Conectar el repositorio
+
+1. En Coolify abre **Projects → + New Project**
+2. Selecciona **Add Resource → Public Repository** (o Private si el repo es privado)
+3. Pega la URL del repo: `https://github.com/jhon507-c/AsistIA`
+4. Branch: `master`
+
+---
+
+### Paso 2 — Configurar el servicio
+
+En la pantalla de configuración del recurso:
+
+| Campo | Valor |
+|---|---|
+| **Build Pack** | `Dockerfile` |
+| **Dockerfile path** | `Dockerfile` |
+| **Port** | `8000` |
+| **Base directory** | `/` |
+
+Coolify detecta el `Dockerfile` automáticamente si está en la raíz.
+
+---
+
+### Paso 3 — Variables de entorno
+
+En la pestaña **Environment Variables** agrega:
+
+| Variable | Valor | Descripción |
+|---|---|---|
+| `DB_PATH` | `/data/asistia.db` | Ruta de la base de datos dentro del contenedor |
+| `MODELS_DIR` | `/app/models` | Directorio del modelo InsightFace |
+| `RECOGNITION_THRESHOLD` | `0.45` | Sensibilidad del reconocimiento (opcional) |
+| `LATE_HOUR` | `7` | Hora límite de asistencia (opcional) |
+| `LATE_MINUTE` | `15` | Minuto límite (opcional) |
+
+---
+
+### Paso 4 — Volumen persistente
+
+La base de datos y los modelos deben sobrevivir reinicios del contenedor. En la pestaña **Storages** agrega dos volúmenes:
+
+| Nombre | Ruta en contenedor | Descripción |
+|---|---|---|
+| `asistia-data` | `/data` | Base de datos SQLite |
+| `asistia-models` | `/app/models` | Modelo InsightFace (~30 MB) |
+
+> **Importante:** Sin el volumen `/data` la base de datos se borra cada vez que el contenedor se reinicia.
+
+---
+
+### Paso 5 — Configurar el proxy (WebSocket)
+
+AsistIA usa WebSockets para el reconocimiento en tiempo real. En la pestaña **Network** o **Proxy** de Coolify:
+
+1. Asegúrate de que el dominio esté apuntando al servidor
+2. Activa **WebSocket support** si aparece como opción
+3. En **Advanced → Custom Nginx / Traefik config** agrega si es necesario:
+
+```
+# Para Traefik (Coolify v4)
+traefik.http.middlewares.asistia-ws.headers.customrequestheaders.Upgrade=websocket
+traefik.http.middlewares.asistia-ws.headers.customrequestheaders.Connection=Upgrade
+```
+
+En la mayoría de instalaciones de Coolify v4 el WebSocket funciona sin configuración extra.
+
+---
+
+### Paso 6 — Primer despliegue
+
+1. Haz clic en **Deploy**
+2. Coolify construye la imagen Docker (la primera vez tarda ~5 min por la descarga del modelo InsightFace)
+3. Cuando el estado cambia a **Running** abre la URL asignada
+
+```
+https://asistia.tudominio.com/kiosk.html
+```
+
+---
+
+### Actualizar la aplicación
+
+Cada vez que hagas `git push` al repo:
+
+- **Opción A (automática):** activa el webhook en Coolify → **Settings → Webhooks → Enable automatic deployment**. Coolify redespliega en cada push al branch `master`.
+
+- **Opción B (manual):** en el dashboard de Coolify haz clic en **Redeploy**.
+
+---
+
+### Notas para Coolify
+
+- **Cámara:** el navegador de la tableta debe acceder a la app por **HTTPS** para que `getUserMedia` (acceso a cámara) funcione. Coolify genera certificados SSL automáticamente con Let's Encrypt si el dominio está configurado.
+- **SQLite en contenedor:** el volumen `/data` debe estar montado antes del primer arranque, de lo contrario la DB se crea en la capa temporal del contenedor y se pierde al reiniciar.
+- **Primera build:** el `Dockerfile` descarga el modelo InsightFace durante la construcción de la imagen (`RUN python3 -c "..."`) y lo deja en la imagen. El volumen de modelos sirve como caché extra para builds futuras.
+- **Logs:** en Coolify ve a **Logs → Container Logs** para ver los logs de uvicorn en tiempo real.
+
+---
+
 ## Estructura de archivos
 
 ```

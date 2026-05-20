@@ -17,6 +17,7 @@ Acceder al kiosko:
 import asyncio
 import base64
 import csv
+import os
 import io
 import json
 import logging
@@ -40,11 +41,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("asistia")
 
 # ── Globals ───────────────────────────────────────────────────────────────────
-DB_PATH = "asistia.db"
-MODELS_DIR = Path("models")          # InsightFace descarga aquí automáticamente
-RECOGNITION_THRESHOLD = 0.45         # Distancia máxima para considerar match (menor = más estricto)
-LATE_HOUR = 7                        # Hora límite
-LATE_MINUTE = 15                     # Minuto límite (7:15 AM)
+DB_PATH    = os.environ.get("DB_PATH",     "asistia.db")
+MODELS_DIR = Path(os.environ.get("MODELS_DIR", "models"))
+RECOGNITION_THRESHOLD = float(os.environ.get("RECOGNITION_THRESHOLD", "0.45"))
+LATE_HOUR   = int(os.environ.get("LATE_HOUR",   "7"))
+LATE_MINUTE = int(os.environ.get("LATE_MINUTE", "15"))
 
 face_app = None                      # InsightFace app (se carga al iniciar)
 student_cache: dict = {}             # Cache de embeddings: {id: [embedding, ...]}
