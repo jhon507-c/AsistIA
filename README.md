@@ -339,13 +339,14 @@ En la pestaña **Environment Variables** agrega:
 
 ### Paso 4 — Volumen persistente
 
-La base de datos y los modelos deben sobrevivir reinicios del contenedor. En la pestaña **Storages** agrega dos volúmenes:
+La base de datos y los modelos deben sobrevivir reinicios del contenedor. En la pestaña **Persistent Storage** haz clic en **+ Add → Volume Mount** y crea dos entradas:
 
-| Nombre | Ruta en contenedor | Descripción |
+| Source (nombre del volumen) | Destination (ruta en contenedor) | Descripción |
 |---|---|---|
 | `asistia-data` | `/data` | Base de datos SQLite |
 | `asistia-models` | `/app/models` | Modelo InsightFace (~30 MB) |
 
+> Elige siempre **Volume Mount** (no File Mount ni Directory Mount) — es un volumen Docker gestionado por Coolify que persiste entre redeployments.  
 > **Importante:** Sin el volumen `/data` la base de datos se borra cada vez que el contenedor se reinicia.
 
 ---
