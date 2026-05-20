@@ -839,11 +839,11 @@ canvas.chart { width:100% !important; }
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const SERVER = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
-  ? 'ws://localhost:8000'
-  : `ws://${location.hostname}:8000`;
-
-const API = SERVER.replace('ws://', 'http://').replace('wss://', 'https://');
+const _isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const _wsProto  = location.protocol === 'https:' ? 'wss' : 'ws';
+const _port     = _isLocal ? ':8000' : '';
+const SERVER    = `${_wsProto}://${location.hostname}${_port}`;
+const API       = _isLocal ? `http://${location.hostname}:8000` : '';
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 let authToken = localStorage.getItem('asistia_token') || null;
