@@ -40,6 +40,59 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
   transition: opacity .35s, transform .35s; }
 .screen.off { opacity:0; pointer-events:none; transform:scale(.98); }
 
+/* ══ LOGIN ══════════════════════════════════════════════════ */
+#sLogin { background:var(--bg); align-items:center; justify-content:center; z-index:100; }
+.login-card { width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:40px 36px;box-shadow:var(--glow);text-align:center; }
+.login-logo { width:64px;height:64px;border-radius:16px;margin:0 auto 20px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:#07110d;
+  box-shadow:var(--glow); }
+.login-title { font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-bottom:4px; }
+.login-sub { font-size:12px;color:var(--muted);margin-bottom:28px; }
+.field-wrap { text-align:left;margin-bottom:14px; }
+.field-lbl { font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;
+  text-transform:uppercase;margin-bottom:5px;display:block; }
+.field-inp { width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:10px;
+  outline:none;transition:.2s; }
+.field-inp:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,197,94,.12); }
+.login-err { font-size:12px;color:var(--danger);min-height:16px;margin-bottom:12px;text-align:left; }
+.btn-login { width:100%;padding:13px;background:var(--accent);color:#07110d;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:15px;border:none;
+  border-radius:11px;cursor:pointer;transition:.2s;margin-top:4px; }
+.btn-login:hover { background:var(--accent2); }
+.btn-login:disabled { opacity:.5;cursor:not-allowed; }
+.login-inst { font-size:11px;color:var(--muted);margin-top:20px; }
+
+/* ══ USER MANAGEMENT ════════════════════════════════════════ */
+.user-row { display:flex;align-items:center;gap:10px;padding:10px 14px;
+  border-bottom:1px solid var(--border);transition:.15s; }
+.user-row:last-child { border-bottom:none; }
+.user-avatar { width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#07110d; }
+.ua-admin { background:linear-gradient(135deg,var(--accent),var(--accent2)); }
+.ua-op    { background:linear-gradient(135deg,var(--info),#0ea5e9); }
+.user-info { flex:1;min-width:0; }
+.user-nm { font-size:13px;font-weight:500; }
+.user-em { font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.role-badge { font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;letter-spacing:.5px; }
+.rb-admin { background:rgba(34,197,94,.15);color:var(--accent);border:1px solid rgba(34,197,94,.3); }
+.rb-op    { background:rgba(56,189,248,.12);color:var(--info);border:1px solid rgba(56,189,248,.25); }
+.rb-off   { background:rgba(244,63,94,.1);color:var(--danger);border:1px solid rgba(244,63,94,.2); }
+.user-actions { display:flex;gap:6px; }
+.uact { background:transparent;border:1px solid var(--border);color:var(--muted);
+  font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;transition:.15s; }
+.uact:hover { border-color:var(--accent);color:var(--accent); }
+.uact.danger:hover { border-color:var(--danger);color:var(--danger); }
+
+/* New user form */
+.new-user-form { background:var(--s2);border-radius:12px;padding:16px;margin-top:12px; }
+.form-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px; }
+.form-grid .full { grid-column:1/-1; }
+
 /* ══════════════════════════════════════════
    KIOSK SCREEN
 ══════════════════════════════════════════ */
@@ -425,6 +478,28 @@ canvas.chart { width:100% !important; }
   <div class="ld-msg" id="ldMsg">Conectando al servidor...</div>
 </div>
 
+<!-- ══ LOGIN ══════════════════════════════════════════════════════ -->
+<div class="screen" id="sLogin">
+  <div class="login-card">
+    <div class="login-logo">AI</div>
+    <div class="login-title">AsistIA</div>
+    <div class="login-sub">Instituto Panamericano de David</div>
+    <div class="field-wrap">
+      <label class="field-lbl">Correo electrónico</label>
+      <input class="field-inp" id="loginEmail" type="email" placeholder="usuario@ipadavid.edu.pa"
+        onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div class="field-wrap">
+      <label class="field-lbl">Contraseña</label>
+      <input class="field-inp" id="loginPass" type="password" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-err" id="loginErr"></div>
+    <button class="btn-login" id="btnLogin" onclick="doLogin()">Iniciar sesión</button>
+    <div class="login-inst">Acceso restringido — solo personal autorizado</div>
+  </div>
+</div>
+
 <!-- ══ KIOSK ══════════════════════════════════════════════════════ -->
 <div class="screen off" id="sKiosk">
   <div class="topbar">
@@ -437,6 +512,7 @@ canvas.chart { width:100% !important; }
     <span class="ws-badge ws-warn" id="wsBadge">● Conectando</span>
     <button class="btn-sm" onclick="goDash()">📊 Dashboard</button>
     <button class="btn-sm" onclick="goAdmin()">⚙ Admin</button>
+    <button class="btn-sm" id="userChip" onclick="showUserMenu()" style="color:var(--accent);border-color:rgba(34,197,94,.3)">👤 —</button>
   </div>
 
   <div class="kiosk-body">
@@ -685,7 +761,66 @@ canvas.chart { width:100% !important; }
           <tbody id="tAttendance"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Sin registros</td></tr></tbody></table>
         </div>
       </div>
+
+      <!-- Gestión de usuarios — solo admin -->
+      <div class="card" id="cardUsers" style="display:none">
+        <div class="card-t" style="display:flex;align-items:center;justify-content:space-between">
+          <span>👥 Operadores del sistema</span>
+          <button class="btn btn-primary" style="font-size:11px;padding:5px 12px"
+            onclick="toggleNewUserForm()">+ Nuevo</button>
+        </div>
+
+        <!-- Form nuevo usuario -->
+        <div id="newUserForm" style="display:none" class="new-user-form">
+          <div class="form-grid">
+            <div>
+              <label class="field-lbl">Nombre</label>
+              <input class="field-inp" id="nuName" type="text" placeholder="Nombre completo">
+            </div>
+            <div>
+              <label class="field-lbl">Rol</label>
+              <select class="field-inp" id="nuRole">
+                <option value="operator">Operador</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </div>
+            <div class="full">
+              <label class="field-lbl">Correo</label>
+              <input class="field-inp" id="nuEmail" type="email" placeholder="correo@ipadavid.edu.pa">
+            </div>
+            <div class="full">
+              <label class="field-lbl">Contraseña</label>
+              <input class="field-inp" id="nuPass" type="password" placeholder="Mínimo 6 caracteres">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" style="flex:1;font-size:12px;padding:8px" onclick="createUser()">Crear usuario</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:8px" onclick="toggleNewUserForm()">Cancelar</button>
+          </div>
+        </div>
+
+        <div id="userList" style="margin-top:8px"></div>
+      </div>
+
     </div>
+  </div>
+</div>
+
+<!-- ══ USER MENU MODAL ════════════════════════════════════════ -->
+<div id="userMenuOverlay" style="display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(7,17,13,.7);backdrop-filter:blur(6px);align-items:flex-start;
+  justify-content:flex-end;padding:60px 16px 0" onclick="if(event.target===this)closeUserMenu()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    width:260px;padding:20px;box-shadow:var(--glow)">
+    <div id="umName" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px"></div>
+    <div id="umEmail" style="font-size:11px;color:var(--muted);margin-bottom:16px"></div>
+    <div id="umAdminLink" style="display:none;margin-bottom:10px">
+      <button class="btn btn-ghost" style="width:100%;font-size:12px;padding:8px" onclick="closeUserMenu();goAdmin()">⚙ Panel Admin</button>
+    </div>
+    <button class="btn" style="width:100%;background:rgba(244,63,94,.12);color:var(--danger);
+      border:1px solid rgba(244,63,94,.25);font-size:13px;padding:9px" onclick="doLogout()">
+      Cerrar sesión
+    </button>
   </div>
 </div>
 
@@ -698,6 +833,102 @@ const SERVER = location.hostname === 'localhost' || location.hostname === '127.0
   : `ws://${location.hostname}:8000`;
 
 const API = SERVER.replace('ws://', 'http://').replace('wss://', 'https://');
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+let authToken = localStorage.getItem('asistia_token') || null;
+let authUser  = JSON.parse(localStorage.getItem('asistia_user') || 'null');
+
+function saveAuth(token, user) {
+  authToken = token; authUser = user;
+  localStorage.setItem('asistia_token', token);
+  localStorage.setItem('asistia_user', JSON.stringify(user));
+}
+
+function clearAuth() {
+  authToken = null; authUser = null;
+  localStorage.removeItem('asistia_token');
+  localStorage.removeItem('asistia_user');
+}
+
+async function apiFetch(path, opts = {}) {
+  opts.headers = { ...(opts.headers || {}), 'Content-Type': 'application/json' };
+  if (authToken) opts.headers['Authorization'] = `Bearer ${authToken}`;
+  if (opts.body && typeof opts.body !== 'string') opts.body = JSON.stringify(opts.body);
+  const res = await fetch(API + path, opts);
+  if (res.status === 401) { clearAuth(); showLogin(); return null; }
+  return res;
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  const btn   = document.getElementById('btnLogin');
+
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Ingresa tu correo y contraseña'; return; }
+
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.detail || 'Credenciales incorrectas'; return; }
+    saveAuth(data.token, { name: data.name, email: data.email, role: data.role });
+    updateUserChip();
+    document.getElementById('sLogin').classList.add('off');
+    await initApp();
+  } catch(e) {
+    errEl.textContent = 'No se pudo conectar al servidor';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Iniciar sesión';
+  }
+}
+
+async function doLogout() {
+  if (authToken) {
+    await fetch(`${API}/api/auth/logout`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}` }
+    }).catch(() => {});
+  }
+  clearAuth();
+  closeUserMenu();
+  stopKioskCam();
+  stopRegCam();
+  if (kioskWs) { kioskWs.close(); kioskWs = null; }
+  showLogin();
+}
+
+function showLogin() {
+  document.getElementById('sLogin').classList.remove('off');
+  ['sKiosk','sDash','sAdmin'].forEach(s => document.getElementById(s).classList.add('off'));
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginErr').textContent = '';
+}
+
+function updateUserChip() {
+  if (!authUser) return;
+  document.getElementById('userChip').textContent = `👤 ${authUser.name.split(' ')[0]}`;
+  // Mostrar gestión de usuarios solo al admin
+  document.getElementById('cardUsers').style.display = authUser.role === 'admin' ? '' : 'none';
+}
+
+function showUserMenu() {
+  if (!authUser) return;
+  document.getElementById('umName').textContent = authUser.name;
+  document.getElementById('umEmail').textContent = authUser.email;
+  document.getElementById('umAdminLink').style.display = authUser.role === 'admin' ? '' : 'none';
+  const el = document.getElementById('userMenuOverlay');
+  el.style.display = 'flex';
+}
+
+function closeUserMenu() {
+  document.getElementById('userMenuOverlay').style.display = 'none';
+}
 
 // ── AUDIO ─────────────────────────────────────────────────────────────────────
 let _audioCtx = null;
@@ -776,16 +1007,22 @@ function setBadge(state) {
 
 function connectKioskWs() {
   if (kioskWs && kioskWs.readyState <= 1) return;
-  kioskWs = new WebSocket(`${SERVER}/ws/kiosk`);
+  const t = authToken ? `?token=${authToken}` : '';
+  kioskWs = new WebSocket(`${SERVER}/ws/kiosk${t}`);
   kioskWs.onopen  = () => { setBadge('ok'); toast('Servidor conectado ✓'); _kioskWaiting=false; sendKioskFrame(); };
-  kioskWs.onclose = () => { setBadge('err'); setTimeout(connectKioskWs, 3000); };
+  kioskWs.onclose = (e) => {
+    setBadge('err');
+    if (e.code === 4401) { clearAuth(); showLogin(); return; }
+    setTimeout(connectKioskWs, 3000);
+  };
   kioskWs.onerror = () => setBadge('err');
   kioskWs.onmessage = (e) => handleKioskMsg(JSON.parse(e.data));
 }
 
 function connectRegWs() {
   if (regWs && regWs.readyState <= 1) return;
-  regWs = new WebSocket(`${SERVER}/ws/register`);
+  const t = authToken ? `?token=${authToken}` : '';
+  regWs = new WebSocket(`${SERVER}/ws/register${t}`);
   regWs.onmessage = (e) => handleRegMsg(JSON.parse(e.data));
   regWs.onclose = () => setTimeout(connectRegWs, 2000);
 }
@@ -1122,10 +1359,9 @@ async function registerStudent() {
   btn.disabled = true; btn.textContent = 'Guardando...';
 
   try {
-    const res = await fetch(`${API}/api/students`, {
+    const res = await apiFetch('/api/students', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ name, grade, embeddings: capturedEmbeddings })
+      body: { name, grade, embeddings: capturedEmbeddings }
     });
     if (!res.ok) throw new Error(await res.text());
     toast(`✓ ${name} registrado correctamente`);
@@ -1147,10 +1383,11 @@ async function loadStudents() {
   document.getElementById('tAttendance').innerHTML =
     '<tr><td colspan="5" class="tbl-loading">Cargando</td></tr>';
   try {
-    const [students, att] = await Promise.all([
-      fetch(`${API}/api/students`).then(r=>r.json()),
-      fetch(`${API}/api/attendance`).then(r=>r.json()),
+    const [rS, rA] = await Promise.all([
+      apiFetch('/api/students'), apiFetch('/api/attendance')
     ]);
+    if (!rS || !rA) return;
+    const [students, att] = await Promise.all([rS.json(), rA.json()]);
     const today = new Date().toISOString().split('T')[0];
     const markedToday = new Set(att.filter(a=>a.date===today).map(a=>a.student_id));
 
@@ -1190,7 +1427,7 @@ async function loadStudents() {
 
 async function deleteStudent(id) {
   if (!confirm('¿Eliminar este alumno?')) return;
-  await fetch(`${API}/api/students/${id}`, {method:'DELETE'});
+  await apiFetch(`/api/students/${id}`, {method:'DELETE'});
   toast('Alumno eliminado');
   loadStudents();
 }
@@ -1223,6 +1460,7 @@ function goAdmin() {
   stopRegCam();
   setScanBtn(false);
   loadStudents();
+  if (authUser && authUser.role === 'admin') loadUsers();
 }
 
 function goDash() {
@@ -1247,7 +1485,9 @@ async function loadDashboard() {
   const days = document.getElementById('dashDays').value;
   let data;
   try {
-    data = await fetch(`${API}/api/stats/dashboard?days=${days}`).then(r=>r.json());
+    const _r = await apiFetch(`/api/stats/dashboard?days=${days}`);
+    if (!_r) return;
+    data = await _r.json();
   } catch(e) { return; }
 
   // KPIs
@@ -1418,10 +1658,9 @@ async function confirmImport() {
   const btn = document.querySelector('#importPreview .btn');
   btn.textContent = 'Importando...'; btn.disabled = true;
   try {
-    const res = await fetch(`${API}/api/students/import`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ rows: csvRows })
-    }).then(r=>r.json());
+    const _ir = await apiFetch('/api/students/import', { method:'POST', body: { rows: csvRows } });
+    if (!_ir) return;
+    const res = await _ir.json();
     toast(`✓ ${res.imported} importados · ${res.skipped} omitidos`);
     csvRows = [];
     document.getElementById('importPreview').style.display = 'none';
@@ -1439,7 +1678,9 @@ function searchStudents(q) {
   const box = document.getElementById('searchResults');
   if (!q.trim()) { box.style.display='none'; return; }
   searchTimer = setTimeout(async () => {
-    const rows = await fetch(`${API}/api/students?q=${encodeURIComponent(q)}`).then(r=>r.json());
+    const _sr = await apiFetch(`/api/students?q=${encodeURIComponent(q)}`);
+    if (!_sr) return;
+    const rows = await _sr.json();
     if (!rows.length) { box.innerHTML='<div style="padding:14px;color:var(--muted);font-size:12px">Sin resultados</div>'; }
     else {
       box.innerHTML = rows.map(s=>`
@@ -1480,9 +1721,8 @@ async function registerStudent() {
     const btn = document.getElementById('btnRegister');
     btn.disabled = true; btn.textContent = 'Guardando...';
     try {
-      await fetch(`${API}/api/students/${selectedStudent}/biometric`, {
-        method:'PATCH', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ embeddings: capturedEmbeddings })
+      await apiFetch(`/api/students/${selectedStudent}/biometric`, {
+        method:'PATCH', body: { embeddings: capturedEmbeddings }
       });
       toast('✓ Biometría actualizada correctamente');
       selectedStudent = null;
@@ -1497,29 +1737,112 @@ async function registerStudent() {
   await _origRegister();
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-async function init() {
-  setLoad(20, 'Verificando servidor...');
-  try {
-    const health = await fetch(`${API}/api/health`).then(r=>r.json());
-    setLoad(50, health.models_loaded
-      ? `InsightFace listo · ${health.students_cached} alumnos en caché`
-      : 'Servidor en modo demo');
-  } catch(e) {
-    setLoad(50, 'Servidor no disponible — modo offline');
-  }
+// ── USER MANAGEMENT ───────────────────────────────────────────────────────────
+function toggleNewUserForm() {
+  const f = document.getElementById('newUserForm');
+  f.style.display = f.style.display === 'none' ? '' : 'none';
+}
 
+async function createUser() {
+  const name  = document.getElementById('nuName').value.trim();
+  const email = document.getElementById('nuEmail').value.trim();
+  const pass  = document.getElementById('nuPass').value;
+  const role  = document.getElementById('nuRole').value;
+  if (!name || !email || !pass) { toast('Completa todos los campos'); return; }
+  const res = await apiFetch('/api/users', { method:'POST', body: { name, email, password: pass, role } });
+  if (!res) return;
+  if (!res.ok) { const d = await res.json(); toast('✗ ' + (d.detail || 'Error')); return; }
+  toast('✓ Usuario creado');
+  document.getElementById('nuName').value = '';
+  document.getElementById('nuEmail').value = '';
+  document.getElementById('nuPass').value = '';
+  toggleNewUserForm();
+  loadUsers();
+}
+
+async function loadUsers() {
+  const res = await apiFetch('/api/users');
+  if (!res || !res.ok) return;
+  const users = await res.json();
+  const list = document.getElementById('userList');
+  if (!users.length) { list.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:12px">Sin usuarios</div>'; return; }
+  list.innerHTML = users.map(u => {
+    const initials = u.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const avatarCls = u.role === 'admin' ? 'ua-admin' : 'ua-op';
+    const roleBadge = !u.active
+      ? '<span class="role-badge rb-off">INACTIVO</span>'
+      : u.role === 'admin'
+        ? '<span class="role-badge rb-admin">ADMIN</span>'
+        : '<span class="role-badge rb-op">OPERADOR</span>';
+    const isSelf = authUser && u.email === authUser.email;
+    return `<div class="user-row">
+      <div class="user-avatar ${avatarCls}">${initials}</div>
+      <div class="user-info">
+        <div class="user-nm">${u.name}${isSelf ? ' <span style="font-size:10px;color:var(--muted)">(tú)</span>' : ''}</div>
+        <div class="user-em">${u.email}</div>
+      </div>
+      ${roleBadge}
+      ${!isSelf ? `<div class="user-actions">
+        <button class="uact" onclick="toggleUserActive(${u.id},${u.active})">${u.active ? 'Desactivar' : 'Activar'}</button>
+        <button class="uact danger" onclick="deleteUser(${u.id},'${u.name.replace(/'/g,"\\'")}')">✕</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function toggleUserActive(id, current) {
+  await apiFetch(`/api/users/${id}`, { method:'PATCH', body: { active: !current } });
+  loadUsers();
+}
+
+async function deleteUser(id, name) {
+  if (!confirm(`¿Eliminar a ${name}?`)) return;
+  await apiFetch(`/api/users/${id}`, { method:'DELETE' });
+  loadUsers();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+async function initApp() {
+  updateUserChip();
   setLoad(70, 'Iniciando cámara...');
   await startKiosk();
-
   setLoad(90, 'Conectando WebSocket...');
   connectKioskWs();
-
   setLoad(100, '¡Listo!');
   setTimeout(() => {
     doneLoading();
     document.getElementById('sKiosk').classList.remove('off');
   }, 400);
+}
+
+async function init() {
+  setLoad(20, 'Verificando servidor...');
+  try {
+    const health = await fetch(`${API}/api/health`).then(r=>r.json());
+    setLoad(40, health.models_loaded
+      ? `InsightFace listo · ${health.students_cached} alumnos en caché`
+      : 'Servidor en modo demo');
+  } catch(e) {
+    setLoad(40, 'Servidor no disponible');
+  }
+
+  // Si ya hay token válido, skip login
+  if (authToken) {
+    const res = await fetch(`${API}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    }).catch(() => null);
+    if (res && res.ok) {
+      authUser = await res.json();
+      localStorage.setItem('asistia_user', JSON.stringify(authUser));
+      await initApp();
+      return;
+    }
+    clearAuth();
+  }
+
+  // Mostrar login
+  doneLoading();
+  showLogin();
 }
 
 init();

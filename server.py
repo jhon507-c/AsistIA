@@ -17,10 +17,12 @@ Acceder al kiosko:
 import asyncio
 import base64
 import csv
+import hashlib
 import os
 import io
 import json
 import logging
+import secrets
 import sqlite3
 import time
 from contextlib import asynccontextmanager
@@ -30,7 +32,7 @@ from typing import Optional
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
@@ -46,6 +48,10 @@ MODELS_DIR = Path(os.environ.get("MODELS_DIR", "models"))
 RECOGNITION_THRESHOLD = float(os.environ.get("RECOGNITION_THRESHOLD", "0.45"))
 LATE_HOUR   = int(os.environ.get("LATE_HOUR",   "7"))
 LATE_MINUTE = int(os.environ.get("LATE_MINUTE", "15"))
+
+ADMIN_EMAIL    = os.environ.get("ADMIN_EMAIL",    "ADMIN_EMAIL_REDACTED")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "REDACTED")
+SESSION_HOURS  = int(os.environ.get("SESSION_HOURS", "8"))
 
 face_app = None                      # InsightFace app (se carga al iniciar)
 student_cache: dict = {}             # Cache de embeddings: {id: [embedding, ...]}
@@ -134,15 +140,101 @@ def init_db():
             confidence  REAL,
             UNIQUE(student_id, date)
         );
+
+        CREATE TABLE IF NOT EXISTS app_users (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            email      TEXT UNIQUE NOT NULL,
+            name       TEXT NOT NULL,
+            role       TEXT NOT NULL DEFAULT 'operator',
+            password_hash TEXT NOT NULL,
+            active     INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS app_sessions (
+            token      TEXT PRIMARY KEY,
+            user_id    INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+            expires_at TEXT NOT NULL
+        );
     """)
-    # Migración: añadir columnas nuevas si la DB ya existía
+    # Migración: columnas legacy
     for col, default in [("cedula","''"), ("nivel","''"), ("has_biometric","0")]:
         try:
             conn.execute(f"ALTER TABLE students ADD COLUMN {col} TEXT DEFAULT {default}")
             conn.commit()
         except Exception:
             pass
+
+    # Crear admin por defecto si no existe
+    existing = conn.execute("SELECT id FROM app_users WHERE email=?", (ADMIN_EMAIL,)).fetchone()
+    if not existing:
+        conn.execute(
+            "INSERT INTO app_users (email, name, role, password_hash, active, created_at) VALUES (?,?,?,?,1,?)",
+            (ADMIN_EMAIL, "Administrador", "admin", _hash_password(ADMIN_PASSWORD), datetime.now().isoformat())
+        )
+        conn.commit()
+        log.info(f"Admin creado: {ADMIN_EMAIL}")
+
     conn.close()
+
+
+# ── Auth helpers ──────────────────────────────────────────────────────────────
+def _hash_password(password: str) -> str:
+    salt = secrets.token_hex(16)
+    h = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 200_000)
+    return f"{salt}:{h.hex()}"
+
+
+def _verify_password(password: str, stored: str) -> bool:
+    try:
+        salt, h = stored.split(":", 1)
+        h2 = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 200_000)
+        return secrets.compare_digest(h, h2.hex())
+    except Exception:
+        return False
+
+
+def _create_session(user_id: int) -> str:
+    token = secrets.token_urlsafe(40)
+    expires = (datetime.now() + timedelta(hours=SESSION_HOURS)).isoformat()
+    conn = get_db()
+    # Limpiar sesiones expiradas del mismo usuario
+    conn.execute("DELETE FROM app_sessions WHERE user_id=? OR expires_at<?",
+                 (user_id, datetime.now().isoformat()))
+    conn.execute("INSERT INTO app_sessions (token, user_id, expires_at) VALUES (?,?,?)",
+                 (token, user_id, expires))
+    conn.commit()
+    conn.close()
+    return token
+
+
+def _get_session_user(token: str) -> Optional[dict]:
+    if not token:
+        return None
+    conn = get_db()
+    row = conn.execute("""
+        SELECT u.id, u.email, u.name, u.role, u.active
+        FROM app_users u
+        JOIN app_sessions s ON s.user_id = u.id
+        WHERE s.token = ? AND s.expires_at > ? AND u.active = 1
+    """, (token, datetime.now().isoformat())).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def require_auth(request: Request) -> dict:
+    token = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+    user = _get_session_user(token)
+    if not user:
+        raise HTTPException(401, "No autenticado")
+    return user
+
+
+def require_admin(request: Request) -> dict:
+    user = require_auth(request)
+    if user["role"] != "admin":
+        raise HTTPException(403, "Solo administradores")
+    return user
 
 
 def load_student_cache():
@@ -249,15 +341,11 @@ COOLDOWN_SECONDS = 8
 
 
 @app.websocket("/ws/kiosk")
-async def ws_kiosk(ws: WebSocket):
-    """
-    Recibe frames del kiosco, reconoce rostros y devuelve resultado.
-    
-    Protocolo:
-      Cliente → { "frame": "<base64 jpeg>" }
-      Servidor → { "type": "match"|"no_face"|"unknown"|"already_marked",
-                   "student": {...}, "confidence": float, "status": str }
-    """
+async def ws_kiosk(ws: WebSocket, token: Optional[str] = None):
+    user = _get_session_user(token or "")
+    if not user:
+        await ws.close(code=4401)
+        return
     await kiosk_manager.connect(ws)
     log.info("Kiosko conectado")
     
@@ -405,15 +493,11 @@ def check_pose(face, phase: int) -> tuple[bool, float, str]:
 
 # ── WebSocket: Registro automático ───────────────────────────────────────────
 @app.websocket("/ws/register")
-async def ws_register(ws: WebSocket):
-    """
-    Detecta rostros en tiempo real para guiar el registro con control de pose.
-
-    Cliente → { "frame": "<base64>", "phase": 0|1|2 }
-    Servidor → { "type": "detected"|"no_face"|"poor_quality"|"wrong_pose",
-                 "phase": int, "quality": float, "yaw": float,
-                 "pose_ok": bool, "guide": str, "embedding": [...] }
-    """
+async def ws_register(ws: WebSocket, token: Optional[str] = None):
+    user = _get_session_user(token or "")
+    if not user:
+        await ws.close(code=4401)
+        return
     await register_manager.connect(ws)
     log.info("Registro conectado")
 
@@ -489,8 +573,135 @@ async def ws_register(ws: WebSocket):
 
 # ── REST API ──────────────────────────────────────────────────────────────────
 
+# Auth endpoints (públicos) ───────────────────────────────────────────────────
+
+@app.post("/api/auth/login")
+async def login(body: dict):
+    email    = body.get("email", "").strip().lower()
+    password = body.get("password", "")
+    if not email or not password:
+        raise HTTPException(400, "Email y contraseña requeridos")
+
+    conn = get_db()
+    user = conn.execute(
+        "SELECT * FROM app_users WHERE email=? AND active=1", (email,)
+    ).fetchone()
+    conn.close()
+
+    if not user or not _verify_password(password, user["password_hash"]):
+        raise HTTPException(401, "Credenciales incorrectas")
+
+    token = _create_session(user["id"])
+    log.info(f"Login: {email} ({user['role']})")
+    return {"token": token, "name": user["name"], "email": user["email"], "role": user["role"]}
+
+
+@app.post("/api/auth/logout")
+async def logout(request: Request):
+    token = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+    if token:
+        conn = get_db()
+        conn.execute("DELETE FROM app_sessions WHERE token=?", (token,))
+        conn.commit()
+        conn.close()
+    return {"ok": True}
+
+
+@app.get("/api/auth/me")
+async def me(user: dict = Depends(require_auth)):
+    return {"id": user["id"], "name": user["name"], "email": user["email"], "role": user["role"]}
+
+
+# User management (admin only) ────────────────────────────────────────────────
+
+@app.get("/api/users")
+async def list_users(user: dict = Depends(require_admin)):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, email, name, role, active, created_at FROM app_users ORDER BY role DESC, name"
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/users")
+async def create_user(body: dict, user: dict = Depends(require_admin)):
+    email    = body.get("email", "").strip().lower()
+    name     = body.get("name", "").strip()
+    password = body.get("password", "").strip()
+    role     = body.get("role", "operator")
+
+    if not email or not name or not password:
+        raise HTTPException(400, "Email, nombre y contraseña son requeridos")
+    if role not in ("admin", "operator"):
+        raise HTTPException(400, "Rol inválido")
+    if len(password) < 6:
+        raise HTTPException(400, "La contraseña debe tener al menos 6 caracteres")
+
+    conn = get_db()
+    if conn.execute("SELECT id FROM app_users WHERE email=?", (email,)).fetchone():
+        conn.close()
+        raise HTTPException(409, "El email ya está registrado")
+
+    conn.execute(
+        "INSERT INTO app_users (email, name, role, password_hash, active, created_at) VALUES (?,?,?,?,1,?)",
+        (email, name, role, _hash_password(password), datetime.now().isoformat())
+    )
+    conn.commit()
+    conn.close()
+    log.info(f"Usuario creado: {email} ({role}) por {user['email']}")
+    return {"ok": True}
+
+
+@app.patch("/api/users/{uid}")
+async def update_user(uid: int, body: dict, admin: dict = Depends(require_admin)):
+    conn = get_db()
+    target = conn.execute("SELECT * FROM app_users WHERE id=?", (uid,)).fetchone()
+    if not target:
+        conn.close()
+        raise HTTPException(404, "Usuario no encontrado")
+
+    # No puede desactivarse a sí mismo ni cambiar su propio rol
+    if target["id"] == admin["id"] and ("active" in body or "role" in body):
+        conn.close()
+        raise HTTPException(400, "No puedes modificar tu propio rol o estado")
+
+    fields, vals = [], []
+    if "name" in body:
+        fields.append("name=?"); vals.append(body["name"].strip())
+    if "role" in body and body["role"] in ("admin","operator"):
+        fields.append("role=?"); vals.append(body["role"])
+    if "active" in body:
+        fields.append("active=?"); vals.append(1 if body["active"] else 0)
+    if "password" in body and body["password"]:
+        if len(body["password"]) < 6:
+            conn.close()
+            raise HTTPException(400, "La contraseña debe tener al menos 6 caracteres")
+        fields.append("password_hash=?"); vals.append(_hash_password(body["password"]))
+
+    if fields:
+        vals.append(uid)
+        conn.execute(f"UPDATE app_users SET {','.join(fields)} WHERE id=?", vals)
+        conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
+@app.delete("/api/users/{uid}")
+async def delete_user(uid: int, admin: dict = Depends(require_admin)):
+    if uid == admin["id"]:
+        raise HTTPException(400, "No puedes eliminar tu propia cuenta")
+    conn = get_db()
+    conn.execute("DELETE FROM app_users WHERE id=?", (uid,))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
+# Students (auth required) ────────────────────────────────────────────────────
+
 @app.post("/api/students")
-async def create_student(body: dict):
+async def create_student(body: dict, _: dict = Depends(require_auth)):
     """Crea alumno con biométrica (embeddings requeridos)."""
     name  = body.get("name", "").strip()
     grade = body.get("grade", "").strip()
@@ -525,7 +736,7 @@ async def create_student(body: dict):
 
 
 @app.get("/api/students")
-async def list_students(q: Optional[str] = None):
+async def list_students(q: Optional[str] = None, _: dict = Depends(require_auth)):
     conn = get_db()
     if q:
         pattern = f"%{q}%"
@@ -548,7 +759,7 @@ async def list_students(q: Optional[str] = None):
 
 
 @app.patch("/api/students/{student_id}/biometric")
-async def add_biometric(student_id: str, body: dict):
+async def add_biometric(student_id: str, body: dict, _: dict = Depends(require_auth)):
     """Añade embeddings biométricos a un alumno ya existente (importado por CSV)."""
     embeddings = body.get("embeddings", [])
     if not embeddings:
@@ -578,7 +789,7 @@ async def add_biometric(student_id: str, body: dict):
 
 
 @app.post("/api/students/import")
-async def import_csv(body: dict):
+async def import_csv(body: dict, _: dict = Depends(require_auth)):
     """
     Importa alumnos desde CSV parseado en el frontend.
     body: { "rows": [{"name":"..","cedula":"..","nivel":"..","grade":".."}] }
@@ -621,7 +832,7 @@ async def import_csv(body: dict):
 
 
 @app.delete("/api/students/{student_id}")
-async def delete_student(student_id: str):
+async def delete_student(student_id: str, _: dict = Depends(require_auth)):
     conn = get_db()
     conn.execute("DELETE FROM students WHERE id=?", (student_id,))
     conn.commit()
@@ -631,7 +842,7 @@ async def delete_student(student_id: str):
 
 
 @app.get("/api/stats/dashboard")
-async def dashboard_stats(days: int = 7):
+async def dashboard_stats(days: int = 7, _: dict = Depends(require_auth)):
     """Datos para gráficas del dashboard: últimos N días."""
     conn = get_db()
     today = date.today()
@@ -696,7 +907,7 @@ async def dashboard_stats(days: int = 7):
 
 
 @app.get("/api/attendance")
-async def get_attendance(fecha: Optional[str] = None):
+async def get_attendance(fecha: Optional[str] = None, _: dict = Depends(require_auth)):
     today = fecha or date.today().isoformat()
     conn = get_db()
     rows = conn.execute(
@@ -708,7 +919,7 @@ async def get_attendance(fecha: Optional[str] = None):
 
 
 @app.get("/api/attendance/stats")
-async def get_stats(fecha: Optional[str] = None):
+async def get_stats(fecha: Optional[str] = None, _: dict = Depends(require_auth)):
     today = fecha or date.today().isoformat()
     conn = get_db()
     row = conn.execute("""
@@ -731,7 +942,7 @@ async def get_stats(fecha: Optional[str] = None):
 
 
 @app.get("/api/attendance/export")
-async def export_csv(fecha: Optional[str] = None):
+async def export_csv(fecha: Optional[str] = None, _: dict = Depends(require_auth)):
     today = fecha or date.today().isoformat()
     conn = get_db()
     rows = conn.execute(
