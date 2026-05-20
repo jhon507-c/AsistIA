@@ -321,13 +321,19 @@ Coolify detecta el `Dockerfile` automáticamente si está en la raíz.
 
 En la pestaña **Environment Variables** agrega:
 
-| Variable | Valor | Descripción |
-|---|---|---|
-| `DB_PATH` | `/data/asistia.db` | Ruta de la base de datos dentro del contenedor |
-| `MODELS_DIR` | `/app/models` | Directorio del modelo InsightFace |
-| `RECOGNITION_THRESHOLD` | `0.45` | Sensibilidad del reconocimiento (opcional) |
-| `LATE_HOUR` | `7` | Hora límite de asistencia (opcional) |
-| `LATE_MINUTE` | `15` | Minuto límite (opcional) |
+| Variable | Ejemplo de valor | Requerida | Descripción |
+|---|---|---|---|
+| `ADMIN_EMAIL` | `tecnologia@ipadavid.edu.pa` | ✅ Sí | Correo del administrador principal |
+| `ADMIN_PASSWORD` | `UnaContraseñaSegura123!` | ✅ Sí | Contraseña del administrador (mínimo 12 caracteres) |
+| `DB_PATH` | `/data/asistia.db` | ✅ Sí | Ruta de la base de datos dentro del contenedor |
+| `MODELS_DIR` | `/app/models` | ✅ Sí | Directorio del modelo InsightFace |
+| `RECOGNITION_THRESHOLD` | `0.45` | No | Sensibilidad del reconocimiento facial (0.0–1.0) |
+| `LATE_HOUR` | `7` | No | Hora límite para marcar asistencia puntual |
+| `LATE_MINUTE` | `15` | No | Minuto límite (ej. 7:15 AM) |
+| `SESSION_HOURS` | `8` | No | Duración de la sesión de operador en horas |
+
+> ⚠️ **El servidor no arrancará** si `ADMIN_EMAIL` o `ADMIN_PASSWORD` no están definidas.  
+> Nunca uses los valores del `.env.example` en producción — elige una contraseña fuerte y única.
 
 ---
 
