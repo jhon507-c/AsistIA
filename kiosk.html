@@ -830,6 +830,9 @@ canvas.chart { width:100% !important; }
             <option>12° A</option><option>12° B</option>
             <option>Docente</option><option>Personal</option>
           </select>
+          <!-- Muestra el grado real del alumno cuando se edita biometría -->
+          <div id="rGradeDisplay" style="display:none;background:var(--s2);border:1px solid var(--border);
+            border-radius:8px;padding:9px 13px;font-size:14px;color:var(--text)"></div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn-scan idle" id="btnScan" onclick="toggleScan()" style="flex:1">
@@ -874,7 +877,7 @@ canvas.chart { width:100% !important; }
           <div class="prev-slot" id="ps1"><div class="slot-n">2</div></div>
           <div class="prev-slot" id="ps2"><div class="slot-n">3</div></div>
           <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;">
-            <button class="btn btn-ghost" style="font-size:14px;padding:6px 14px;min-height:36px" onclick="resetCapture()">↺ Reiniciar</button>
+            <button class="btn btn-ghost" style="font-size:14px;padding:6px 14px;min-height:36px" onclick="resetCapture(true)">↺ Reiniciar</button>
           </div>
         </div>
         <button class="btn btn-primary" style="width:100%" id="btnRegister" onclick="registerStudent()" disabled>
@@ -1665,7 +1668,7 @@ function startRegLoop() {
   }, 200); // 5 fps
 }
 
-function resetCapture() {
+function resetCapture(fullReset = false) {
   currentPhase = 0;
   lastEmbedding = null;
   capturedEmbeddings = []; capturedThumbs = [];
@@ -1679,6 +1682,20 @@ function resetCapture() {
   document.getElementById('btnScan').disabled=false;
   document.getElementById('phaseMsg').classList.remove('show');
   stopRegCam();
+
+  // fullReset: volver al modo "nuevo alumno" — restaurar select y limpiar selección
+  if (fullReset) {
+    selectedStudent = null;
+    document.getElementById('rName2').value = '';
+    document.getElementById('rName2').readOnly = false;
+    document.getElementById('rGrade2').style.display = '';
+    document.getElementById('rGradeDisplay').style.display = 'none';
+    document.getElementById('rGradeDisplay').textContent = '';
+    document.getElementById('btnRegister').dataset.mode = '';
+    document.getElementById('btnRegister').textContent = 'Registrar Alumno';
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchResults').style.display = 'none';
+  }
 }
 
 // ── Register student ──────────────────────────────────────────────────────────
@@ -1693,10 +1710,7 @@ async function registerStudent() {
         method:'PATCH', body: { embeddings: capturedEmbeddings }
       });
       toast('✓ Biometría actualizada correctamente');
-      selectedStudent = null;
-      document.getElementById('btnRegister').dataset.mode = '';
-      document.getElementById('searchInput').value = '';
-      resetCapture();
+      resetCapture(true);
       loadStudents();
     } catch(e) { toast('Error al guardar biometría'); }
     btn.disabled = false; btn.textContent = 'Registrar Alumno';
@@ -2110,27 +2124,40 @@ function searchStudents(q) {
     const rows = await _sr.json();
     if (!rows.length) { box.innerHTML='<div style="padding:14px;color:var(--muted);font-size:14px">Sin resultados</div>'; }
     else {
-      box.innerHTML = rows.map(s=>`
-        <div class="search-item" onclick="selectForBiometric('${s.id}','${s.name.replace(/'/g,"\\'")}')">
+      box.innerHTML = rows.map(s => {
+        const gradeLabel = [s.nivel, s.grade].filter(Boolean).join(' · ');
+        const nameSafe  = s.name.replace(/'/g,"\\'");
+        const gradeSafe = gradeLabel.replace(/'/g,"\\'");
+        return `
+        <div class="search-item" onclick="selectForBiometric('${s.id}','${nameSafe}','${gradeSafe}')">
           <div class="si-info">
             <div class="si-name">${s.name}</div>
-            <div class="si-meta">${s.cedula ? 'Cédula: '+s.cedula+' · ' : ''}${s.nivel || s.grade}</div>
+            <div class="si-meta">${s.cedula ? 'Cédula: '+s.cedula+' · ' : ''}${gradeLabel || '—'}</div>
           </div>
           <span class="si-badge ${s.has_biometric ? 'si-ok':'si-pend'}">
             ${s.has_biometric ? '✓ Bio':'Sin bio'}
           </span>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
     box.style.display = 'block';
   }, 300);
 }
 
-function selectForBiometric(id, name) {
+function selectForBiometric(id, name, grade) {
   selectedStudent = id;
   document.getElementById('searchResults').style.display = 'none';
   document.getElementById('searchInput').value = name;
-  // Pre-cargar nombre en el formulario de registro y cambiar botón
   document.getElementById('rName2').value = name;
+  document.getElementById('rName2').readOnly = true;
+
+  // Mostrar grado real de la DB en lugar del select
+  const sel = document.getElementById('rGrade2');
+  const display = document.getElementById('rGradeDisplay');
+  sel.style.display = 'none';
+  display.style.display = 'block';
+  display.textContent = grade || '—';
+
   document.getElementById('btnRegister').dataset.mode = 'biometric';
   document.getElementById('btnRegister').textContent = `Actualizar biometría de ${name.split(' ')[0]}`;
   document.getElementById('btnRegister').disabled = true;
