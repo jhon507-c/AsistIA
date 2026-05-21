@@ -1171,10 +1171,13 @@ function showLogin() {
   // Restaurar usuario y contraseña recordados
   const savedEmail = localStorage.getItem('asistia_remember_email');
   const savedPass  = localStorage.getItem('asistia_remember_pass');
+  const passInp = document.getElementById('loginPass');
+  passInp.type = 'password';
+  document.getElementById('btnPassVis').textContent = '👁';
   if (savedEmail) {
     document.getElementById('loginEmail').value = savedEmail;
     document.getElementById('chkRemember').checked = true;
-    if (savedPass) document.getElementById('loginPass').value = atob(savedPass);
+    if (savedPass) passInp.value = atob(savedPass);
   }
 }
 
