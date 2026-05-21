@@ -660,6 +660,7 @@ canvas.chart { width:100% !important; }
     </div>
     <div class="topbar-actions">
       <span class="ws-badge ws-warn" id="wsBadge">● Conectando</span>
+      <button class="btn-sm" id="btnCamFlip" onclick="flipKioskCam()" title="Cambiar cámara">🔄<span class="tb-label">Cámara</span></button>
       <button class="btn-sm" onclick="goDash()">📊<span class="tb-label">Dashboard</span></button>
       <button class="btn-sm" onclick="goAdmin()">⚙<span class="tb-label">Admin</span></button>
       <button class="btn-sm" id="userChip" onclick="showUserMenu()" style="color:var(--accent);border-color:rgba(34,197,94,.3)">👤<span class="tb-label" id="userChipName">—</span></button>
@@ -830,10 +831,14 @@ canvas.chart { width:100% !important; }
             <option>Docente</option><option>Personal</option>
           </select>
         </div>
-        <button class="btn-scan idle" id="btnScan" onclick="toggleScan()">
-          <span id="btnScanIcon">▶</span>
-          <span id="btnScanTxt">Iniciar cámara</span>
-        </button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-scan idle" id="btnScan" onclick="toggleScan()" style="flex:1">
+            <span id="btnScanIcon">▶</span>
+            <span id="btnScanTxt">Iniciar cámara</span>
+          </button>
+          <button class="btn btn-ghost" id="btnRegFlip" onclick="flipRegCam()"
+            style="padding:0;width:40px;height:40px;font-size:18px;flex-shrink:0" title="Cambiar cámara">🔄</button>
+        </div>
         <div class="phase-banner" id="phaseBanner">
           <div class="phase-num" id="phaseNum">1</div>
           <div class="phase-desc">
@@ -1317,17 +1322,39 @@ function connectRegWs() {
 }
 
 // ── KIOSK setup ───────────────────────────────────────────────────────────────
+let kioskFacing = localStorage.getItem('asistia_cam') || 'user'; // 'user' | 'environment'
+
+function updateCamFlipBtn() {
+  const btn = document.getElementById('btnCamFlip');
+  if (!btn) return;
+  const isBack = kioskFacing === 'environment';
+  btn.title = isBack ? 'Cambiar a cámara frontal' : 'Cambiar a cámara trasera';
+  btn.querySelector('.tb-label').textContent = isBack ? ' Trasera' : ' Frontal';
+}
+
 async function startKiosk() {
+  updateCamFlipBtn();
   try {
     kioskStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode:'user', width:640, height:480 }
+      video: { facingMode: kioskFacing, width:640, height:480 }
     });
     const v = document.getElementById('vKiosk');
     v.srcObject = kioskStream;
     await v.play();
+    // Espejo solo en cámara frontal
+    v.style.transform = kioskFacing === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
+    document.getElementById('cvKiosk').style.transform = kioskFacing === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
     v.addEventListener('loadedmetadata', resizeKioskCanvas);
     startKioskLoop();
-  } catch(e) { console.warn('Kiosk cam:', e); }
+  } catch(e) { console.warn('Kiosk cam:', e); toast('No se pudo acceder a la cámara'); }
+}
+
+async function flipKioskCam() {
+  kioskFacing = kioskFacing === 'user' ? 'environment' : 'user';
+  localStorage.setItem('asistia_cam', kioskFacing);
+  stopKioskCam();
+  await startKiosk();
+  toast(kioskFacing === 'environment' ? '📷 Cámara trasera' : '🤳 Cámara frontal');
 }
 
 function resizeKioskCanvas() {
@@ -1480,14 +1507,18 @@ function setScanBtn(active) {
   }
 }
 
+let regFacing = 'user';
+
 async function startRegCam() {
   try {
     regStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode:'user', width:640, height:480 }
+      video: { facingMode: regFacing, width:640, height:480 }
     });
     const v = document.getElementById('vReg');
     v.srcObject = regStream;
     await v.play();
+    v.style.transform = regFacing === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
+    document.getElementById('cvReg').style.transform = regFacing === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
     setScanBtn(true);
     connectRegWs();
     startRegLoop();
@@ -1511,6 +1542,15 @@ function stopRegCam() {
   document.getElementById('phaseBanner').classList.remove('visible');
   document.getElementById('qualBar').style.width = '0%';
   document.getElementById('phaseMsg').classList.remove('show');
+}
+
+async function flipRegCam() {
+  regFacing = regFacing === 'user' ? 'environment' : 'user';
+  if (scanActive) {
+    stopRegCam();
+    await startRegCam();
+  }
+  toast(regFacing === 'environment' ? '📷 Cámara trasera' : '🤳 Cámara frontal');
 }
 
 // ── Register message handler — solo actualiza barra de calidad ────────────────
