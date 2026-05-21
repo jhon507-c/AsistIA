@@ -31,6 +31,9 @@ logs/
 # Static — se genera al instalar (los assets fuente están en assets/)
 static/
 !static/flash.mp3
+!static/kiosk.html
+!static/manifest.json
+!static/sw.js
 
 # OS
 .DS_Store

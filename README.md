@@ -405,16 +405,28 @@ Cada vez que hagas `git push` al repo:
 ```
 AsistIA/
 ├── server.py          # Backend completo (FastAPI)
-├── kiosk.html         # Frontend completo (single-file)
+├── kiosk.html         # Frontend — fuente de desarrollo
+├── manifest.json      # PWA manifest (nombre, íconos, orientación)
+├── sw.js              # Service Worker (cache offline del shell)
 ├── install.sh         # Instalación automática Ubuntu Server
-├── asistia.db         # Base de datos SQLite (auto-creada)
-├── models/            # Modelos InsightFace (auto-descargados)
+├── asistia.db         # Base de datos SQLite (auto-creada, gitignored)
+├── models/            # Modelos InsightFace (auto-descargados, gitignored)
 │   └── buffalo_sc/
 │       ├── det_500m.onnx      # Detección facial
 │       └── w600k_mbf.onnx     # Reconocimiento (embeddings)
-└── static/
-    └── kiosk.html     # Copia servida por FastAPI
+└── static/            # Archivos servidos por FastAPI/Nginx
+    ├── kiosk.html     # Copia de desarrollo — EDITAR ESTE en local
+    ├── manifest.json  # Copia del manifest
+    ├── sw.js          # Copia del service worker
+    ├── flash.mp3      # Sonido de reconocimiento exitoso
+    ├── favicon.ico
+    ├── logo-ipa-192.png
+    ├── logo-ipa-48.png
+    ├── logo-ipa-96.png
+    └── IPA-512X512.png
 ```
+
+> **Nota de desarrollo:** el servidor FastAPI sirve `static/kiosk.html`. Al editar en local, modificar `static/kiosk.html` directamente. El archivo raíz `kiosk.html` es el fuente para commits y despliegues en producción — sincronizar con `cp static/kiosk.html kiosk.html` antes de commitear.
 
 ---
 
@@ -573,6 +585,29 @@ sudo systemctl restart asistia
 | `--muted` | `#4b7a5e` | Texto secundario |
 
 Fuentes: **Syne** (headings/números) + **DM Sans** (body) vía Google Fonts.
+
+---
+
+## PWA — Instalación en móvil e iPad
+
+AsistIA es una **Progressive Web App** instalable sin App Store. Incluye `manifest.json` y Service Worker (`sw.js`).
+
+### Instalar en iPad / iPhone (Safari)
+1. Abre `https://IP-del-servidor` en Safari
+2. Toca el ícono de compartir `⎙`
+3. Selecciona **"Agregar a pantalla de inicio"**
+4. La app aparece con ícono del IPA, se abre sin barra del navegador
+
+### Instalar en Android (Chrome)
+1. Abre la URL en Chrome
+2. Chrome muestra banner **"Agregar a pantalla de inicio"** automáticamente
+3. O bien: menú `⋮` → "Instalar app"
+
+### Requisitos para cámara en móvil
+`getUserMedia` requiere **HTTPS** en producción. En red local WiFi del colegio funciona con HTTP. Para acceso externo o iOS 16+: activar Let's Encrypt en Nginx (ver sección instalación).
+
+### Qué cachea el Service Worker
+Solo el **shell estático** (HTML, íconos, sonidos). Nunca intercepta llamadas a `/api/` ni WebSockets. Si el servidor no responde, la app abre pero muestra pantalla de carga hasta reconectar.
 
 ---
 
