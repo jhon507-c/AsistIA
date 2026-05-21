@@ -29,6 +29,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Optional
+from zoneinfo import ZoneInfo
+
+PANAMA_TZ = ZoneInfo("America/Panama")
 
 import cv2
 import numpy as np
@@ -191,7 +194,7 @@ def init_db():
     if not existing:
         conn.execute(
             "INSERT INTO app_users (email, name, role, password_hash, active, created_at) VALUES (?,?,?,?,1,?)",
-            (ADMIN_EMAIL, "Administrador", "admin", _hash_password(ADMIN_PASSWORD), datetime.now().isoformat())
+            (ADMIN_EMAIL, "Administrador", "admin", _hash_password(ADMIN_PASSWORD), now_panama().isoformat())
         )
         conn.commit()
         log.info(f"Admin creado: {ADMIN_EMAIL}")
@@ -217,11 +220,11 @@ def _verify_password(password: str, stored: str) -> bool:
 
 def _create_session(user_id: int) -> str:
     token = secrets.token_urlsafe(40)
-    expires = (datetime.now() + timedelta(hours=SESSION_HOURS)).isoformat()
+    expires = (now_panama() + timedelta(hours=SESSION_HOURS)).isoformat()
     conn = get_db()
     # Limpiar sesiones expiradas del mismo usuario
     conn.execute("DELETE FROM app_sessions WHERE user_id=? OR expires_at<?",
-                 (user_id, datetime.now().isoformat()))
+                 (user_id, now_panama().isoformat()))
     conn.execute("INSERT INTO app_sessions (token, user_id, expires_at) VALUES (?,?,?)",
                  (token, user_id, expires))
     conn.commit()
@@ -238,7 +241,7 @@ def _get_session_user(token: str) -> Optional[dict]:
         FROM app_users u
         JOIN app_sessions s ON s.user_id = u.id
         WHERE s.token = ? AND s.expires_at > ? AND u.active = 1
-    """, (token, datetime.now().isoformat())).fetchone()
+    """, (token, now_panama().isoformat())).fetchone()
     conn.close()
     return dict(row) if row else None
 
@@ -332,8 +335,14 @@ def find_match(query_embedding: np.ndarray) -> tuple[Optional[str], float]:
     return None, 0.0
 
 
+def now_panama() -> datetime:
+    return datetime.now(PANAMA_TZ)
+
+def today_panama() -> str:
+    return now_panama().date().isoformat()
+
 def determine_status() -> str:
-    now = datetime.now()
+    now = now_panama()
     if now.hour > LATE_HOUR or (now.hour == LATE_HOUR and now.minute >= LATE_MINUTE):
         return "late"
     return "present"
@@ -419,8 +428,8 @@ async def ws_kiosk(ws: WebSocket, token: Optional[str] = None):
                 continue
 
             # Registrar asistencia
-            today = date.today().isoformat()
-            time_str = datetime.now().strftime("%H:%M")
+            today = today_panama()
+            time_str = now_panama().strftime("%H:%M")
             status = determine_status()
 
             conn = get_db()
@@ -666,7 +675,7 @@ async def create_user(body: dict, user: dict = Depends(require_admin)):
 
     conn.execute(
         "INSERT INTO app_users (email, name, role, password_hash, active, created_at) VALUES (?,?,?,?,1,?)",
-        (email, name, role, _hash_password(password), datetime.now().isoformat())
+        (email, name, role, _hash_password(password), now_panama().isoformat())
     )
     conn.commit()
     conn.close()
@@ -736,7 +745,7 @@ async def create_student(body: dict, _: dict = Depends(require_auth)):
         raise HTTPException(400, "Se necesita al menos 1 embedding facial")
 
     student_id = f"s_{int(time.time() * 1000)}"
-    now = datetime.now().isoformat()
+    now = now_panama().isoformat()
 
     conn = get_db()
     conn.execute(
@@ -792,7 +801,7 @@ async def add_biometric(student_id: str, body: dict, _: dict = Depends(require_a
         conn.close()
         raise HTTPException(404, "Alumno no encontrado")
 
-    now = datetime.now().isoformat()
+    now = now_panama().isoformat()
     # Eliminar embeddings anteriores y reemplazar
     conn.execute("DELETE FROM face_embeddings WHERE student_id=?", (student_id,))
     for emb in embeddings:
@@ -820,7 +829,7 @@ async def import_csv(body: dict, _: dict = Depends(require_auth)):
     if not rows:
         raise HTTPException(400, "Sin filas")
 
-    now = datetime.now().isoformat()
+    now = now_panama().isoformat()
     conn = get_db()
     imported, skipped = 0, 0
 
@@ -866,7 +875,7 @@ async def delete_student(student_id: str, _: dict = Depends(require_auth)):
 async def dashboard_stats(days: int = 7, _: dict = Depends(require_auth)):
     """Datos para gráficas del dashboard: últimos N días."""
     conn = get_db()
-    today = date.today()
+    today = now_panama().date()
 
     # Serie de días
     dates = [(today - timedelta(days=i)).isoformat() for i in range(days-1, -1, -1)]
@@ -942,7 +951,7 @@ async def dashboard_stats(days: int = 7, _: dict = Depends(require_auth)):
 
 @app.get("/api/attendance")
 async def get_attendance(fecha: Optional[str] = None, _: dict = Depends(require_auth)):
-    today = fecha or date.today().isoformat()
+    today = fecha or today_panama()
     conn = get_db()
     rows = conn.execute("""
         SELECT a.*, s.nivel, s.cedula
@@ -956,7 +965,7 @@ async def get_attendance(fecha: Optional[str] = None, _: dict = Depends(require_
 
 @app.get("/api/attendance/stats")
 async def get_stats(fecha: Optional[str] = None, _: dict = Depends(require_auth)):
-    today = fecha or date.today().isoformat()
+    today = fecha or today_panama()
     conn = get_db()
     row = conn.execute("""
         SELECT
@@ -983,7 +992,7 @@ async def export_csv(
     hasta: Optional[str] = None,
     _: dict = Depends(require_auth)
 ):
-    today = date.today().isoformat()
+    today = today_panama()
     d_desde = desde or today
     d_hasta = hasta or today
 
@@ -1014,5 +1023,5 @@ async def health():
         "status": "ok",
         "models_loaded": face_app is not None,
         "students_cached": len(student_cache),
-        "time": datetime.now().isoformat(),
+        "time": now_panama().isoformat(),
     }

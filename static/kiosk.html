@@ -638,7 +638,7 @@ canvas.chart { width:100% !important; }
     <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);margin-top:4px;cursor:pointer">
       <input type="checkbox" id="chkRemember" onchange="onRememberToggle()"
         style="accent-color:var(--accent);width:15px;height:15px">
-      Recordar correo
+      Recordar usuario y contraseña
     </label>
     <div class="login-err" id="loginErr"></div>
     <button class="btn-login" id="btnLogin" onclick="doLogin()">Iniciar sesión</button>
@@ -968,9 +968,14 @@ canvas.chart { width:100% !important; }
   <!-- ── TAB: Asistencia ── -->
   <div class="adm-panel" id="panel-attendance">
     <div class="card" style="overflow:hidden">
-      <div class="card-t" style="justify-content:space-between">
-        <span>📋 Asistencia de hoy</span>
-        <div style="display:flex;gap:8px">
+      <div class="card-t" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span>📋 Asistencia — <span id="attDateLabel">hoy</span></span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="date" id="attDatePicker"
+            style="background:var(--s2);border:1px solid var(--border);border-radius:8px;
+              color:var(--text);padding:6px 10px;font-size:14px;outline:none;color-scheme:dark"
+            onchange="loadAttendanceForDate(this.value)">
+          <button class="btn btn-ghost" style="font-size:14px;padding:6px 10px" onclick="loadAttendanceForDate('')">Hoy</button>
           <button class="btn btn-ghost" style="font-size:14px;padding:6px 12px" onclick="openExportModal()">⬇ Exportar CSV</button>
         </div>
       </div>
@@ -1100,11 +1105,14 @@ async function doLogin() {
     });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.detail || 'Credenciales incorrectas'; return; }
-    // Recordar email si el checkbox está marcado
-    if (document.getElementById('chkRemember').checked)
+    // Recordar usuario y contraseña si el checkbox está marcado
+    if (document.getElementById('chkRemember').checked) {
       localStorage.setItem('asistia_remember_email', email);
-    else
+      localStorage.setItem('asistia_remember_pass', btoa(pass));
+    } else {
       localStorage.removeItem('asistia_remember_email');
+      localStorage.removeItem('asistia_remember_pass');
+    }
     saveAuth(data.token, { name: data.name, email: data.email, role: data.role });
     updateUserChip();
     document.getElementById('sLogin').classList.add('off');
@@ -1133,16 +1141,14 @@ async function doLogout() {
 
 function onRememberToggle() {
   const checked = document.getElementById('chkRemember').checked;
-  const email = document.getElementById('loginEmail').value.trim();
-  if (checked && email) localStorage.setItem('asistia_remember_email', email);
-  else if (!checked)    localStorage.removeItem('asistia_remember_email');
+  if (!checked) {
+    localStorage.removeItem('asistia_remember_email');
+    localStorage.removeItem('asistia_remember_pass');
+  }
 }
 
 function onLoginEmailChange() {
-  if (document.getElementById('chkRemember').checked) {
-    const email = document.getElementById('loginEmail').value.trim();
-    if (email) localStorage.setItem('asistia_remember_email', email);
-  }
+  // noop — only save on successful login
 }
 
 function togglePassVis() {
@@ -1162,11 +1168,13 @@ function showLogin() {
   ['sKiosk','sDash','sAdmin'].forEach(s => document.getElementById(s).classList.add('off'));
   document.getElementById('loginPass').value = '';
   document.getElementById('loginErr').textContent = '';
-  // Restaurar email recordado
-  const saved = localStorage.getItem('asistia_remember_email');
-  if (saved) {
-    document.getElementById('loginEmail').value = saved;
+  // Restaurar usuario y contraseña recordados
+  const savedEmail = localStorage.getItem('asistia_remember_email');
+  const savedPass  = localStorage.getItem('asistia_remember_pass');
+  if (savedEmail) {
+    document.getElementById('loginEmail').value = savedEmail;
     document.getElementById('chkRemember').checked = true;
+    if (savedPass) document.getElementById('loginPass').value = atob(savedPass);
   }
 }
 
@@ -1274,13 +1282,21 @@ const PHASES = [
   { title: 'Foto derecha',      hint: 'Gira la cabeza hacia tu derecha',   num: '3' },
 ];
 
+// ── TIMEZONE HELPERS (Panamá UTC-5) ───────────────────────────────────────────
+const _TZ = 'America/Panama';
+function nowPanama() { return new Date(new Date().toLocaleString('en-US', { timeZone: _TZ })); }
+function todayPanama() {
+  const d = new Date();
+  return d.toLocaleDateString('en-CA', { timeZone: _TZ }); // YYYY-MM-DD
+}
+
 // ── CLOCK ─────────────────────────────────────────────────────────────────────
 function tick() {
   const n = new Date();
   document.getElementById('clock').textContent =
-    n.toLocaleTimeString('es-PA', {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+    n.toLocaleTimeString('es-PA', { timeZone: _TZ, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
   document.getElementById('clockDate').textContent =
-    n.toLocaleDateString('es-PA', {weekday:'short',day:'numeric',month:'short'});
+    n.toLocaleDateString('es-PA', { timeZone: _TZ, weekday:'short', day:'numeric', month:'short' });
 }
 setInterval(tick, 1000); tick();
 
@@ -1754,19 +1770,26 @@ async function registerStudent() {
 // ── Students table ────────────────────────────────────────────────────────────
 let _allStudents = [];
 
+let _currentAttDate = '';  // '' = hoy (Panamá)
+
 async function loadStudents() {
   document.getElementById('tStudents').innerHTML =
     '<tr><td colspan="7" class="tbl-loading">Cargando</td></tr>';
   document.getElementById('tAttendance').innerHTML =
     '<tr><td colspan="6" class="tbl-loading">Cargando</td></tr>';
   try {
+    const today = todayPanama();
+    // Inicializar datepicker con hoy si aún no tiene valor
+    const dp = document.getElementById('attDatePicker');
+    if (!dp.value) dp.value = today;
+
+    const attDate = _currentAttDate || today;
     const [rS, rA] = await Promise.all([
-      apiFetch('/api/students'), apiFetch('/api/attendance')
+      apiFetch('/api/students'), apiFetch(`/api/attendance?fecha=${attDate}`)
     ]);
     if (!rS || !rA) return;
     const [students, att] = await Promise.all([rS.json(), rA.json()]);
     _allStudents = students;
-    const today = new Date().toISOString().split('T')[0];
     const markedToday = new Set(att.filter(a=>a.date===today).map(a=>a.student_id));
 
     // Badges
@@ -1775,30 +1798,52 @@ async function loadStudents() {
     document.getElementById('tabBadgeAtt').textContent = att.length;
 
     renderStudentsTable(students, markedToday);
-
-    // Attendance summary bar
-    const present = att.filter(a=>a.status==='present').length;
-    const late    = att.filter(a=>a.status==='late').length;
-    document.getElementById('attSummary').innerHTML = `
-      <span style="background:rgba(34,197,94,.12);color:var(--accent);padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600">✓ ${present} Presentes</span>
-      <span style="background:rgba(251,191,36,.1);color:var(--warn);padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600">⏱ ${late} Tardíos</span>
-      <span style="background:rgba(244,63,94,.1);color:var(--danger);padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600">✗ ${students.length - present - late} Ausentes</span>`;
-
-    // Attendance table
-    const atbody = document.getElementById('tAttendance');
-    if (!att.length) {
-      atbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Sin registros hoy</td></tr>';
-      return;
-    }
-    atbody.innerHTML = att.map(a => `<tr>
-      <td>${a.student_name}</td>
-      <td style="color:var(--muted)">${a.nivel||'—'}</td>
-      <td style="color:var(--muted)">${a.grade}</td>
-      <td style="font-family:'Syne',sans-serif">${a.time}</td>
-      <td><span class="pill ${a.status==='present'?'pill-ok':'pill-late'}">${a.status==='present'?'Presente':'Tardío'}</span></td>
-      <td style="color:var(--muted)">${a.confidence||0}%</td>
-    </tr>`).join('');
+    renderAttendance(att, students.length, attDate === today);
   } catch(e) { console.warn('loadStudents:', e); }
+}
+
+async function loadAttendanceForDate(dateStr) {
+  const today = todayPanama();
+  _currentAttDate = dateStr || today;
+  const dp = document.getElementById('attDatePicker');
+  dp.value = _currentAttDate;
+
+  // Actualizar etiqueta del título
+  const label = document.getElementById('attDateLabel');
+  label.textContent = _currentAttDate === today ? 'hoy' : _currentAttDate;
+
+  document.getElementById('tAttendance').innerHTML =
+    '<tr><td colspan="6" class="tbl-loading">Cargando</td></tr>';
+  try {
+    const rA = await apiFetch(`/api/attendance?fecha=${_currentAttDate}`);
+    if (!rA) return;
+    const att = await rA.json();
+    document.getElementById('tabBadgeAtt').textContent = att.length;
+    renderAttendance(att, _allStudents.length, _currentAttDate === today);
+  } catch(e) { console.warn('loadAttendanceForDate:', e); }
+}
+
+function renderAttendance(att, totalStudents, isToday) {
+  const present = att.filter(a=>a.status==='present').length;
+  const late    = att.filter(a=>a.status==='late').length;
+  document.getElementById('attSummary').innerHTML = `
+    <span style="background:rgba(34,197,94,.12);color:var(--accent);padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600">✓ ${present} Presentes</span>
+    <span style="background:rgba(251,191,36,.1);color:var(--warn);padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600">⏱ ${late} Tardíos</span>
+    <span style="background:rgba(244,63,94,.1);color:var(--danger);padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600">✗ ${totalStudents - present - late} Ausentes</span>`;
+
+  const atbody = document.getElementById('tAttendance');
+  if (!att.length) {
+    atbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Sin registros${isToday ? ' hoy' : ''}</td></tr>`;
+    return;
+  }
+  atbody.innerHTML = att.map(a => `<tr>
+    <td>${a.student_name}</td>
+    <td style="color:var(--muted)">${a.nivel||'—'}</td>
+    <td style="color:var(--muted)">${a.grade}</td>
+    <td style="font-family:'Syne',sans-serif">${a.time}</td>
+    <td><span class="pill ${a.status==='present'?'pill-ok':'pill-late'}">${a.status==='present'?'Presente':'Tardío'}</span></td>
+    <td style="color:var(--muted)">${a.confidence||0}%</td>
+  </tr>`).join('');
 }
 
 function renderStudentsTable(students, markedToday) {
@@ -2298,7 +2343,7 @@ if ('serviceWorker' in navigator) {
 
 // ── Export modal ──────────────────────────────────────────────────────────────
 function openExportModal() {
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayPanama();
   document.getElementById('expDesde').value = today;
   document.getElementById('expHasta').value = today;
   document.getElementById('exportModal').classList.add('open');
@@ -2307,11 +2352,12 @@ function closeExportModal() {
   document.getElementById('exportModal').classList.remove('open');
 }
 function setExportRange(days) {
-  const hasta = new Date();
-  const desde = new Date();
-  desde.setDate(hasta.getDate() - days + 1);
-  document.getElementById('expDesde').value = desde.toISOString().slice(0,10);
-  document.getElementById('expHasta').value = hasta.toISOString().slice(0,10);
+  const today = todayPanama();
+  const d = new Date(today + 'T12:00:00');
+  const desde = new Date(d);
+  desde.setDate(d.getDate() - days + 1);
+  document.getElementById('expDesde').value = desde.toLocaleDateString('en-CA', { timeZone: _TZ });
+  document.getElementById('expHasta').value = today;
 }
 function doExport() {
   const desde = document.getElementById('expDesde').value;
