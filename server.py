@@ -119,6 +119,23 @@ async def serve_kiosk():
         "Pragma": "no-cache"
     })
 
+# Versión de caché PWA basada en el momento de arranque del servidor
+_CACHE_VERSION = now_panama().strftime("asistia-%Y%m%d-%H%M")
+
+@app.get("/static/sw.js")
+async def serve_sw():
+    """Sirve el SW con la versión de caché del arranque actual."""
+    path = Path("static/sw.js")
+    if not path.exists():
+        return HTMLResponse("/* sw.js not found */", status_code=404)
+    content = path.read_text(encoding="utf-8")
+    content = content.replace("asistia-v1", _CACHE_VERSION, 1)
+    return HTMLResponse(
+        content=content,
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"}
+    )
+
 # Archivos estáticos (assets: logos, favicon)
 if Path("static").exists():
     app.mount("/static", StaticFiles(directory="static"), name="static")
